@@ -1,0 +1,6 @@
+{
+  "name": "Savdolab Vibe Selling AI",
+  "description": "An AI platform replacing marketplace seller workflow involving product analysis, price discovery, trend identification and competitor research. Uses Gemini AI with web search and grounding to deliver real-time professional reports in Uzbek.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

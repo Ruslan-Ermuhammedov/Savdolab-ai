@@ -1,0 +1,27 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "onboarding_completed": { "type": "boolean" },
+        "occupation": { "type": "string" },
+        "has_store": { "type": "boolean" },
+        "store_name": { "type": "string" },
+        "platforms": { "type": "array", "items": { "type": "string" } },
+        "team_size": { "type": "string" },
+        "main_goals": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number", "description": "Timestamp" },
+        "updatedAt": { "type": "number", "description": "Timestamp" }
+      },
+      "required": ["onboarding_completed"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile detailing their onboarding state."
+    }
+  }
+}

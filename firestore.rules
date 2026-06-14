@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    
+    function isAdmin() {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('is_admin', false) == true;
+    }
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['onboarding_completed']) &&
+             data.onboarding_completed is bool &&
+             (!data.keys().hasAny(['occupation']) || data.occupation is string) &&
+             (!data.keys().hasAny(['has_store']) || data.has_store is bool) &&
+             (!data.keys().hasAny(['store_name']) || data.store_name is string) &&
+             (!data.keys().hasAny(['platforms']) || data.platforms is list) &&
+             (!data.keys().hasAny(['team_size']) || data.team_size is string) &&
+             (!data.keys().hasAny(['main_goals']) || data.main_goals is list) &&
+             (!data.keys().hasAny(['phone_number']) || data.phone_number is string) &&
+             (!data.keys().hasAny(['total_credits']) || data.total_credits is number) &&
+             (!data.keys().hasAny(['used_credits']) || data.used_credits is number) &&
+             (!data.keys().hasAny(['plan_id']) || data.plan_id is string) &&
+             (!data.keys().hasAny(['is_admin']) || data.is_admin is bool) &&
+             (!data.keys().hasAny(['createdAt']) || data.createdAt is number) &&
+             (!data.keys().hasAny(['updatedAt']) || data.updatedAt is number);
+    }
+    
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
+    match /plans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /app_settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /payment_requests/{reqId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin();
+    }
+
+    match /spin_history/{logId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /promo_banners/{bannerId} {
+      allow read: if true;
+      allow update: if true;
+      allow create, delete: if isAdmin();
+    }
+
+    match /saved_reports/{reportId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /usage_logs/{logId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow write: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}

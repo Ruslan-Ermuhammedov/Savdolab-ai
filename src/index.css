@@ -1,0 +1,88 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background-color: #03060B;
+  color: #FFFFFF;
+  margin: 0;
+  font-family: var(--font-sans);
+  background-image: 
+    radial-gradient(circle at 50% 10%, rgba(0, 162, 255, 0.12) 0%, transparent 45%),
+    radial-gradient(circle at 50% 0%, rgba(90, 80, 255, 0.08) 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+/* Custom Utilities */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes spin-gradient {
+  to {
+    --angle: 360deg;
+  }
+}
+
+.animate-glow-spin {
+  background: conic-gradient(from var(--angle), transparent 20%, #1497F3 50%, #89E4FF 80%, transparent 100%);
+  animation: spin-gradient 2s linear infinite;
+}
+
+.animate-breathe {
+  animation: breathe 8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+.bg-animated-mesh {
+  background: linear-gradient(-45deg, #020b16, #092c57, #1b3d7a, #130a38, #020b16);
+  background-size: 400% 400%;
+  animation: gradientFlow 15s ease infinite;
+}
+
+.bg-group6-gradient {
+  background: linear-gradient(-45deg, #1497F3, #022B57, #32ADDF, #0D4A76);
+  background-size: 400% 400%;
+  animation: gradientFlow 15s ease infinite;
+}
+
+.text-shadow-sm {
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
