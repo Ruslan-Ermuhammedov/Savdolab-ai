@@ -5,15 +5,17 @@ import { doc, getDoc, setDoc, updateDoc, collection, query, where, orderBy, getD
 import { updateProfile, updatePassword } from 'firebase/auth';
 import { Save, User, Briefcase, CreditCard, Bookmark, Shield, Settings, LogOut, Check, FileText, Activity, Wallet, Upload, ArrowRight } from 'lucide-react';
 import AdminBanners from './AdminBanners';
+import LandingManager from './LandingManager';
 
 interface ProfileProps {
   user: any;
   onShowToast: (msg: string) => void;
   onNavigateToPricing?: () => void;
+  initialTab?: string;
 }
 
-export default function Profile({ user, onShowToast, onNavigateToPricing }: ProfileProps) {
-  const [activeTab, setActiveTab] = useState('personal');
+export default function Profile({ user, onShowToast, onNavigateToPricing, initialTab = 'personal' }: ProfileProps) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -81,12 +83,16 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
         const settingsDoc = await getDoc(doc(db, 'app_settings', 'general'));
         if (settingsDoc.exists()) setAppSettings(settingsDoc.data());
 
-        // Fetch payment requests
-        const paymentsRef = collection(db, 'payment_requests');
-        const pq = query(paymentsRef, where('userId', '==', user.uid));
+        // Fetch payments
+        const paymentsRef = collection(db, 'payments');
+        const pq = query(paymentsRef, where('user_id', '==', user.uid));
         const pSnap = await getDocs(pq);
         const pData = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        pData.sort((a: any, b: any) => b.createdAt - a.createdAt);
+        pData.sort((a: any, b: any) => {
+           const timeA = a.created_at?.toMillis ? a.created_at.toMillis() : a.created_at;
+           const timeB = b.created_at?.toMillis ? b.created_at.toMillis() : b.created_at;
+           return timeB - timeA;
+        });
         setPaymentRequests(pData);
         
       } catch (err) {
@@ -175,17 +181,17 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
     
     setSaving(true);
     try {
-      const newRef = doc(collection(db, 'payment_requests'));
+      const newRef = doc(collection(db, 'payments'));
       const reqData = {
-        userId: user.uid,
-        userName: paymentFullName,
-        email: user.email,
-        amount: Number(paymentAmount),
+        user_id: user.uid,
+        user_email: user.email,
+        user_name: paymentFullName,
+        amount: paymentAmount,
         method: paymentMethod,
         comment: paymentComment,
-        screenshot: paymentScreenshotBase64,
+        screenshot_url: paymentScreenshotBase64,
         status: 'pending',
-        createdAt: Date.now()
+        created_at: new Date()
       };
       await setDoc(newRef, reqData);
       
@@ -254,7 +260,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
          snap.forEach(d => pData.push({ id: d.id, ...d.data() }));
          setAdminPlans(pData);
 
-         const pSnap = await getDocs(query(collection(db, 'payment_requests'), orderBy('createdAt', 'desc')));
+         const pSnap = await getDocs(query(collection(db, 'payments'), orderBy('created_at', 'desc')));
          const pmData: any[] = [];
          pSnap.forEach(d => pmData.push({ id: d.id, ...d.data() }));
          setAdminPayments(pmData);
@@ -297,7 +303,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
   const handleAdminPaymentAction = async (paymentId: string, action: 'approve' | 'reject', userId: string, amount: number, rejectReason: string = '') => {
       try {
           const status = action === 'approve' ? 'approved' : 'rejected';
-          await updateDoc(doc(db, 'payment_requests', paymentId), {
+          await updateDoc(doc(db, 'payments', paymentId), {
               status,
               rejectionReason: rejectReason,
               processedAt: Date.now(),
@@ -305,17 +311,13 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
           });
 
           if (action === 'approve') {
-             // add credits
+             // add balance
              const userDocRef = doc(db, 'users', userId);
              const userSnap = await getDoc(userDocRef);
              if (userSnap.exists()) {
                  const ud = userSnap.data();
-                 const currentCredits = ud.total_credits || 0;
-                 // Arbitrary logic? Hmm wait, the prompt says "amount" but how many credits is per amount?
-                 // No, "amount" entered might be money. Wait: the prompt says "add credits automatically".
-                 // "Amount" in payment request is money. "amount" to add to credit?
-                 // I will add the amount directly as credits, or maybe Admin needs an input? Let's assume Admin entered credit amount or the amount IS the credit amount.
-                 await updateDoc(userDocRef, { total_credits: currentCredits + parseInt(amount.toString()) });
+                 const currentBalance = ud.balance || 0;
+                 await updateDoc(userDocRef, { balance: currentBalance + parseInt(amount.toString()) });
              }
           }
 
@@ -581,7 +583,21 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
                 <p className="text-white/50 text-sm">Tarif va foydalanish statistikasi</p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-green-500/20 to-transparent border border-green-500/30 rounded-2xl p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10">
+                     <Wallet size={64} />
+                  </div>
+                  <h4 className="text-green-400 text-sm font-semibold mb-1 uppercase tracking-widest">Joriy Balans</h4>
+                  <div className="text-3xl font-bold mb-2">{userData?.balance || 0} <span className="text-sm font-normal text-white/50">UZS</span></div>
+                  <p className="text-white/60 text-sm mb-6 mt-2">
+                     Tarif sotib olish uchun mablag'
+                  </p>
+                  <button onClick={() => setActiveTab('billing')} className="w-full px-4 py-2.5 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold transition-colors text-sm">
+                    Balansni to'ldirish
+                  </button>
+                </div>
+
                 <div className="bg-gradient-to-br from-[#1497F3]/20 to-transparent border border-[#1497F3]/30 rounded-2xl p-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-10">
                      <CreditCard size={64} />
@@ -589,15 +605,13 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
                   <h4 className="text-[#1497F3] text-sm font-semibold mb-1 uppercase tracking-widest">Joriy tarif</h4>
                   <div className="text-3xl font-bold mb-2">{(userData?.plan_id || 'free').toUpperCase()}</div>
                   <div className="text-sm font-medium mb-1 text-white/80 border border-white/10 px-2 py-1 inline-block rounded bg-black/20">
-                     Oxirgi yangilanish: {userData?.updatedAt ? new Date(userData.updatedAt).toLocaleDateString() : 'Yaqinda'}
-                     {' • '}
                      Amal qilish muddati: Cheksiz
                   </div>
                   <p className="text-white/60 text-sm mb-6 mt-2">
                      Asosiy tahlil vositalaridan foydalanish
                   </p>
                   <button onClick={() => onNavigateToPricing && onNavigateToPricing()} className="w-full px-4 py-2.5 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold transition-colors text-sm">
-                    Kredit xarid qilish
+                    Tarifni o'zgartirish
                   </button>
                 </div>
 
@@ -610,7 +624,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
                     <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                       <div className="bg-[#1497F3] h-full transition-all duration-500" style={{ width: `${Math.min((usedCredits / Math.max(totalCredits, 1)) * 100, 100)}%` }}></div>
                     </div>
-                    <p className="text-white/40 text-xs mt-2">Bu oyda {usedCredits} kredit ishlatingiz. Qolgan: {Math.max(totalCredits - usedCredits, 0)}</p>
+                    <p className="text-white/40 text-xs mt-2">Kredit ishlatingiz. Qolgan: {Math.max(totalCredits - usedCredits, 0)}</p>
                   </div>
                 </div>
               </div>
@@ -763,7 +777,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
                        <div key={req.id} className="flex items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5 flex-col md:flex-row gap-3">
                          <div className="flex flex-col flex-1 w-full">
                             <span className="font-medium text-white/90 text-sm">{req.amount} - {req.method}</span>
-                            <span className="text-xs text-white/40 mt-1">{new Date(req.createdAt).toLocaleString('uz-UZ')}</span>
+                             <span className="text-xs text-white/40 mt-1">{req.created_at?.toDate ? req.created_at.toDate().toLocaleString('uz-UZ') : new Date(req.created_at).toLocaleString('uz-UZ')}</span>
                          </div>
                          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
                             {req.status === 'pending' && <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2.5 py-1 rounded-md font-semibold border border-yellow-500/30">Kutilmoqda</span>}
@@ -915,6 +929,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
                   <button onClick={() => setAdminView('settings')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'settings' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Sozlamalar</button>
                   <button onClick={() => setAdminView('spinwheel')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'spinwheel' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Spin Wheel</button>
                   <button onClick={() => setAdminView('banners')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'banners' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Promo Banners</button>
+                  <button onClick={() => setAdminView('landing')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'landing' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Landing Manager</button>
                 </div>
               </div>
 
@@ -1169,6 +1184,10 @@ export default function Profile({ user, onShowToast, onNavigateToPricing }: Prof
 
               {adminView === 'banners' && (
                 <AdminBanners onShowToast={onShowToast} />
+              )}
+              
+              {adminView === 'landing' && (
+                <LandingManager onShowToast={onShowToast} />
               )}
             </motion.div>
           )}

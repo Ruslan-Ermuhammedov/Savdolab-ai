@@ -14,34 +14,18 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     
     function isAdmin() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('is_admin', false) == true;
-    }
-    
-    function isValidUser(data) {
-      return data.keys().hasAll(['onboarding_completed']) &&
-             data.onboarding_completed is bool &&
-             (!data.keys().hasAny(['occupation']) || data.occupation is string) &&
-             (!data.keys().hasAny(['has_store']) || data.has_store is bool) &&
-             (!data.keys().hasAny(['store_name']) || data.store_name is string) &&
-             (!data.keys().hasAny(['platforms']) || data.platforms is list) &&
-             (!data.keys().hasAny(['team_size']) || data.team_size is string) &&
-             (!data.keys().hasAny(['main_goals']) || data.main_goals is list) &&
-             (!data.keys().hasAny(['phone_number']) || data.phone_number is string) &&
-             (!data.keys().hasAny(['total_credits']) || data.total_credits is number) &&
-             (!data.keys().hasAny(['used_credits']) || data.used_credits is number) &&
-             (!data.keys().hasAny(['plan_id']) || data.plan_id is string) &&
-             (!data.keys().hasAny(['is_admin']) || data.is_admin is bool) &&
-             (!data.keys().hasAny(['createdAt']) || data.createdAt is number) &&
-             (!data.keys().hasAny(['updatedAt']) || data.updatedAt is number);
+      return isSignedIn() && (
+        request.auth.token.get('email', '') == 'datecorpuz@gmail.com' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('is_admin', false) == true)
+      );
     }
     
     match /users/{userId} {
       allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
     }
 
-    match /plans/{planId} {
+    match /pricing_plans/{planId} {
       allow read: if true;
       allow write: if isAdmin();
     }
@@ -51,11 +35,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /payment_requests/{reqId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isAdmin();
+    match /payments/{reqId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin() || resource.data.user_id == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && isAdmin();
     }
 
     match /audit_logs/{logId} {
@@ -64,26 +47,40 @@ service cloud.firestore {
     }
 
     match /spin_history/{logId} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow write: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.user_email == request.auth.token.get('email', '')));
+      allow write: if isSignedIn();
     }
 
     match /promo_banners/{bannerId} {
       allow read: if true;
-      allow update: if true;
-      allow create, delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
-    match /saved_reports/{reportId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    match /saved_products/{reportId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.user_id == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.user_id == request.auth.uid || isAdmin());
+    }
+
+    match /support_requests/{reqId} {
+      allow read: if isSignedIn() && (resource.data.user_id == request.auth.uid || isAdmin());
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /notifications/{notifId} {
+      allow read: if isSignedIn() && (resource.data.targetUserId == request.auth.uid || resource.data.targetUserId == 'global' || isAdmin());
+      allow create, update, delete: if isAdmin();
     }
 
     match /usage_logs/{logId} {
       allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow write: if isSignedIn() && (request.resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /plans/{planId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

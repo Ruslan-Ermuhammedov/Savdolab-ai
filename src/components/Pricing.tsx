@@ -8,9 +8,10 @@ interface PricingProps {
   user: any;
   onShowToast: (msg: string) => void;
   onNavigateToProfile: () => void;
+  hideHeader?: boolean;
 }
 
-export default function Pricing({ user, onShowToast, onNavigateToProfile }: PricingProps) {
+export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHeader = false }: PricingProps) {
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<any[]>([]);
 
@@ -105,8 +106,68 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile }: Pric
     fetchPlans();
   }, []);
 
-  const handleSelectPlan = (planId: string) => {
-    onShowToast(`Tanlandi: ${planId.toUpperCase()} - Admin ko'rib chiqishi kerak`);
+  const [modalState, setModalState] = useState<{type: 'none' | 'confirm' | 'insufficient', plan?: any}>({ type: 'none' });
+  const [userBalance, setUserBalance] = useState(0);
+
+  const handleSelectPlan = async (selectedPlan: any) => {
+    if (!user) {
+      onShowToast("Tizimga koring");
+      return;
+    }
+    setLoading(true);
+    try {
+       const uSnap = await getDoc(doc(db, 'users', user.uid));
+       const balance = uSnap.exists() ? (uSnap.data().balance || 0) : 0;
+       setUserBalance(balance);
+       
+       if (balance >= selectedPlan.price) {
+           setModalState({ type: 'confirm', plan: selectedPlan });
+       } else {
+           setModalState({ type: 'insufficient', plan: selectedPlan });
+       }
+    } catch (e: any) {
+       console.error(e);
+       onShowToast("Xatolik: balance tekshirib bo'lmadi");
+    } finally {
+       setLoading(false);
+    }
+  };
+
+  const handleConfirmPurchase = async () => {
+     if (!user || modalState.type !== 'confirm' || !modalState.plan) return;
+     setLoading(true);
+     try {
+         const p = modalState.plan;
+         const newBalance = userBalance - p.price;
+         const uRef = doc(db, 'users', user.uid);
+         const uSnap = await getDoc(uRef);
+         const currentTotalCredits = uSnap.exists() ? (uSnap.data().total_credits || 0) : 0;
+
+         await updateDoc(uRef, {
+            balance: newBalance,
+            plan_id: p.id,
+            total_credits: currentTotalCredits + p.credits,
+            updatedAt: Date.now()
+         });
+
+         // Record transaction log
+         const logRef = doc(collection(db, 'audit_logs'));
+         await setDoc(logRef, {
+             action: 'purchase_plan',
+             target: user.uid,
+             plan_id: p.id,
+             price: p.price,
+             timestamp: new Date()
+         });
+
+         onShowToast(`${p.name} tarifi faollashtirildi!`);
+         setModalState({ type: 'none' });
+     } catch (e: any) {
+         console.error(e);
+         onShowToast("Xaridda xatolik yuz berdi");
+     } finally {
+         setLoading(false);
+     }
   };
 
   const featureList = [
@@ -125,13 +186,15 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile }: Pric
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#000000] text-white overflow-y-auto relative z-10 w-full p-6 lg:p-12 custom-scrollbar">
+    <div className={`flex flex-col text-white relative z-10 w-full ${hideHeader ? 'bg-transparent' : 'flex-1 bg-[#000000] overflow-y-auto p-6 lg:p-12 custom-scrollbar'}`}>
       
       <div className="max-w-7xl mx-auto w-full">
-         <div className="text-center mb-16 mt-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Savdo biznesingiz uchun <span className="text-[#1497F3]">AI narxlar</span></h1>
-            <p className="text-white/50 text-lg max-w-2xl mx-auto">Hech qanday maxfiy to'lovlarsiz shaffof xarajatlar. Maqsadingizga mos keladigan tarifni tanlang.</p>
-         </div>
+         {!hideHeader && (
+           <div className="text-center mb-16 mt-8">
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">Savdo biznesingiz uchun <span className="text-[#1497F3]">AI narxlar</span></h1>
+              <p className="text-white/50 text-lg max-w-2xl mx-auto">Hech qanday maxfiy to'lovlarsiz shaffof xarajatlar. Maqsadingizga mos keladigan tarifni tanlang.</p>
+           </div>
+         )}
 
          {/* Section 1: Pricing Cards */}
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-24 items-end">
@@ -184,7 +247,7 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile }: Pric
                         ))}
                     </ul>
                     
-                    <button onClick={() => handleSelectPlan(plan.id)} className={`w-full py-3 rounded-xl font-semibold transition-colors ${plan.highlight ? 'bg-[#1497F3] hover:bg-[#1497F3]/90 text-white shadow-lg shadow-[#1497F3]/20' : 'bg-white text-black hover:bg-gray-200'}`}>
+                    <button onClick={() => handleSelectPlan(plan)} className={`w-full py-3 rounded-xl font-semibold transition-colors ${plan.highlight ? 'bg-[#1497F3] hover:bg-[#1497F3]/90 text-white shadow-lg shadow-[#1497F3]/20' : 'bg-white text-black hover:bg-gray-200'}`}>
                         Tanlash
                     </button>
                 </motion.div>
@@ -252,8 +315,57 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile }: Pric
                  <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl"></div>
              </div>
          </div>
-
       </div>
+
+      {/* Confirmation Modal */}
+      {modalState.type === 'confirm' && modalState.plan && (
+         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+             <div className="bg-[#0A0D12] border border-white/10 rounded-2xl w-full max-w-md p-6">
+                 <h3 className="text-xl font-bold mb-4">Tarifni tasdiqlash</h3>
+                 <div className="space-y-4 mb-6">
+                    <div className="flex justify-between">
+                       <span className="text-white/50">Tarif nomi:</span>
+                       <span className="font-bold">{modalState.plan.name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                       <span className="text-white/50">Narxi:</span>
+                       <span className="font-bold text-[#1497F3]">{modalState.plan.price}</span>
+                    </div>
+                    <div className="flex justify-between">
+                       <span className="text-white/50">Joriy balans:</span>
+                       <span className="font-bold">{userBalance}</span>
+                    </div>
+                    <div className="border-t border-white/10 pt-4 flex justify-between">
+                       <span className="text-white/80 font-bold">Qolgan balans:</span>
+                       <span className="font-bold text-white">{userBalance - modalState.plan.price}</span>
+                    </div>
+                 </div>
+                 <div className="flex gap-4">
+                    <button onClick={() => setModalState({ type: 'none' })} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">Bekor qilish</button>
+                    <button onClick={handleConfirmPurchase} className="flex-1 px-4 py-2 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white font-bold rounded-xl shadow-lg transition-colors">Sotib olish</button>
+                 </div>
+             </div>
+         </div>
+      )}
+
+      {/* Insufficient Balance Modal */}
+      {modalState.type === 'insufficient' && modalState.plan && (
+         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+             <div className="bg-[#0A0D12] border border-white/10 rounded-2xl w-full max-w-md p-6">
+                 <h3 className="text-xl font-bold mb-4 text-red-500 flex items-center gap-2"><X size={24} /> Mablag' yetarli emas</h3>
+                 <p className="text-white/70 mb-6">
+                    Siz chormoqchi bo'lgan <strong>{modalState.plan.name}</strong> tarifi uchun balansda yetarli mablag' yo'q. <br/><br/>
+                    Tarif narxi: {modalState.plan.price} <br/>
+                    Joriy balans: {userBalance} <br/>
+                    Yana kerak: <span className="font-bold text-[#1497F3]">{modalState.plan.price - userBalance}</span>
+                 </p>
+                 <div className="flex gap-4">
+                    <button onClick={() => setModalState({ type: 'none' })} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">Bekor qilish</button>
+                    <button onClick={() => { setModalState({ type: 'none' }); onNavigateToProfile(); }} className="flex-1 px-4 py-2 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white font-bold rounded-xl shadow-lg transition-colors">Balansni to'ldirish</button>
+                 </div>
+             </div>
+         </div>
+      )}
     </div>
   );
 }

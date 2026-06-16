@@ -12,6 +12,8 @@ import AdAnalyzerView from './AnalyzerAdAnalyzer';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc, collection, addDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 
+import LandingExperience from './LandingExperience';
+
 interface AnalyzerProps {
   initialQuery?: string;
   initialMode?: AppMode;
@@ -40,6 +42,21 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const promptInputRef = useRef<HTMLInputElement>(null);
+
+  const [isPromptSticky, setIsPromptSticky] = useState(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!heroRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsPromptSticky(!entry.isIntersecting);
+      },
+      { threshold: 0.1 } 
+    );
+    observer.observe(heroRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const handleFocusPrompt = () => {
@@ -601,30 +618,35 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
       <div className={`w-full mx-auto px-4 md:pl-[10px] md:pr-[20px] flex flex-col items-center justify-start h-full overflow-y-auto pb-40 transition-all duration-500`}>
         
         {!isChatMode ? (
-          <div className="flex flex-col w-full items-center mt-4 md:mt-[30px] mb-8 md:mb-[70px]">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.98, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0, boxShadow: ['0 0 50px rgba(50,173,223,0.3)', '0 0 90px rgba(50,173,223,0.5)', '0 0 50px rgba(50,173,223,0.3)'] }}
-              transition={{ duration: 0.8, ease: "easeOut", boxShadow: { duration: 8, repeat: Infinity, ease: "easeInOut" } }}
-              className="w-full rounded-3xl md:rounded-[36px] bg-[#0A1322]/50 backdrop-blur-2xl md:backdrop-blur-[60px] border border-white/20 shadow-2xl relative overflow-hidden flex flex-col items-center pt-16 pb-24 md:pt-28 md:pb-[150px] text-center z-10 min-h-[400px] md:min-h-[520px]"
-            >
-              <div className="absolute inset-0 pointer-events-none bg-group6-gradient opacity-95" />
-              <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 1.5px)', backgroundSize: '16px 16px', backgroundPosition: 'center bottom' }} />
-              <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+          <>
+            <div className="flex flex-col w-full items-center mt-4 md:mt-[30px] mb-8 md:mb-[70px]">
+              <motion.div 
+                ref={heroRef}
+                initial={{ opacity: 0, scale: 0.98, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0, boxShadow: ['0 0 50px rgba(50,173,223,0.3)', '0 0 90px rgba(50,173,223,0.5)', '0 0 50px rgba(50,173,223,0.3)'] }}
+                transition={{ duration: 0.8, ease: "easeOut", boxShadow: { duration: 8, repeat: Infinity, ease: "easeInOut" } }}
+                className="w-full rounded-3xl md:rounded-[36px] bg-[#0A1322]/50 backdrop-blur-2xl md:backdrop-blur-[60px] border border-white/20 shadow-2xl relative overflow-hidden flex flex-col items-center pt-16 pb-24 md:pt-28 md:pb-[150px] text-center z-10 min-h-[400px] md:min-h-[520px]"
+              >
+                <div className="absolute inset-0 pointer-events-none bg-group6-gradient opacity-95" />
+                <div className="absolute inset-0 pointer-events-none opacity-20 mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle, #fff 1.5px, transparent 1.5px)', backgroundSize: '16px 16px', backgroundPosition: 'center bottom' }} />
+                <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
-              <div className="relative z-20 flex flex-col items-center w-full px-6">
-                <div className="flex flex-col items-center mb-6 md:mb-10 w-full max-w-[400px]">
-                  <img src={vibeSellingLogo} alt="Vibe Selling MVP" className="h-10 md:h-[72px] w-auto drop-shadow-2xl mx-auto" />
+                <div className="relative z-20 flex flex-col items-center w-full px-6">
+                  <div className="flex flex-col items-center mb-6 md:mb-10 w-full max-w-[400px]">
+                    <img src={vibeSellingLogo} alt="Vibe Selling MVP" className="h-10 md:h-[72px] w-auto drop-shadow-2xl mx-auto" />
+                  </div>
+                  <h1 className="text-white font-[700] text-3xl md:text-[36px] leading-[120%] max-w-[700px] mb-6 md:mb-10 tracking-tight">
+                     bugun qanday g'olib<br/>mahsulotlar haqida gaplashamiz
+                  </h1>
+                  <div className="w-full relative px-2">
+                    {renderInputBox()}
+                  </div>
                 </div>
-                <h1 className="text-white font-[700] text-3xl md:text-[36px] leading-[120%] max-w-[700px] mb-6 md:mb-10 tracking-tight">
-                   bugun qanday g'olib<br/>mahsulotlar haqida gaplashamiz
-                </h1>
-                <div className="w-full relative px-2">
-                  {renderInputBox()}
-                </div>
-              </div>
-            </motion.div>
-          </div>
+              </motion.div>
+            </div>
+            
+            <LandingExperience onNavigateToPricing={onNavigateToPricing} />
+          </>
         ) : (
           <div className="w-full max-w-[1000px] pt-8 flex flex-col animate-fadeIn">
             <div className="flex items-center justify-center w-full mb-10 mt-4 relative">
@@ -780,6 +802,79 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
       )}
 
       {/* Upgrade Modal */}
+      <AnimatePresence>
+        {isPromptSticky && !isChatMode && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 left-0 right-0 z-[150] flex justify-center pointer-events-none px-4"
+          >
+            <div className="w-full max-w-[800px] pointer-events-auto">
+              <form onSubmit={handleSubmit} className="relative group w-full">
+                <div className="absolute inset-0 rounded-[28px] bg-[#0A0D12]/80 backdrop-blur-3xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-none" />
+                <div className="relative flex items-center w-full h-[60px] md:h-[72px] px-3 md:px-5">
+                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/10 mr-3 shrink-0">
+                    {activeMode === 'winning-product' ? <Sparkles size={14} className="text-[#1497F3]" /> :
+                     activeMode === 'trending-products' ? <Flame size={14} className="text-[#1497F3]" /> :
+                     activeMode === 'competitor-spy' ? <Search size={14} className="text-[#1497F3]" /> :
+                     <Megaphone size={14} className="text-[#1497F3]" />}
+                    <span className="text-white text-xs font-semibold">
+                      {activeMode === 'winning-product' ? 'Winning Product' :
+                       activeMode === 'trending-products' ? 'Trending' :
+                       activeMode === 'competitor-spy' ? 'Competitor Spy' : 'Ad Analyzer'}
+                    </span>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={prompt}
+                    onChange={e => {
+                      setPrompt(e.target.value);
+                    }}
+                    placeholder="Savolingizni bering..."
+                    className="flex-1 min-w-[50px] bg-transparent text-white placeholder-white/50 focus:outline-none text-sm md:text-base pr-2"
+                  />
+
+                  {imagePreview && (
+                     <div className="mr-3 relative w-[32px] h-[32px] rounded-[10px] overflow-hidden border-2 border-[#1497F3] shrink-0 group/img shadow-md">
+                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <button type="button" onClick={handleRemoveImage} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
+                          <span className="text-white text-[10px] font-bold">✕</span>
+                        </button>
+                     </div>
+                  )}
+
+                  <div 
+                    className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Upload Image"
+                  >
+                    <Plus size={20} className="text-white/70" />
+                  </div>
+
+                  <div className="hidden md:flex flex-col items-end justify-center mr-4 shrink-0">
+                    <span className="text-white/50 text-[10px] uppercase font-bold tracking-wider leading-none mb-1">Balance</span>
+                    <span className="text-white font-bold text-sm leading-none">{user ? Math.max((user.total_credits || 0) - (user.used_credits || 0), 0) : 0} <span className="text-[#1497F3]">CR</span></span>
+                  </div>
+
+                  <motion.button 
+                     whileHover={{ scale: 1.05 }}
+                     whileTap={{ scale: 0.95 }}
+                     type="submit" 
+                     disabled={loading}
+                     className="w-[40px] h-[40px] md:w-[46px] md:h-[46px] shrink-0 flex items-center justify-center rounded-full disabled:opacity-50" 
+                     style={{ background: 'linear-gradient(135deg, #89E4FF, #C8FFFF)', boxShadow: '0 0 20px rgba(137,228,255,0.3)' }}
+                  >
+                     {loading ? <Loader2 size={18} className="text-[#00243A] animate-spin" /> : <ArrowUp size={20} className="text-[#00243A]" strokeWidth={2.5} />}
+                  </motion.button>
+                </div>
+              </form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showUpgradeModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#0A0D12]/80 backdrop-blur-sm">

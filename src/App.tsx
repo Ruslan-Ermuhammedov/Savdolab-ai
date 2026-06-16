@@ -86,6 +86,8 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const [profileTab, setProfileTab] = useState('personal');
+
   const handleNewTask = () => {
     setCurrentRoute('analyzer');
     setInitialQuery('');
@@ -99,7 +101,8 @@ export default function App() {
     setTaskKey(prev => prev + 1);
   };
 
-  const handleOpenProfile = () => {
+  const handleOpenProfile = (tab: string = 'personal') => {
+    setProfileTab(tab);
     setCurrentRoute('profile');
   };
 
@@ -143,11 +146,11 @@ export default function App() {
         {currentRoute === 'analyzer' ? (
           <AnalyzerInterface key={taskKey} initialQuery={initialQuery} initialMode={initialMode as any} onAnalysisComplete={addHistoryItem} user={user} onNavigateToPricing={handleOpenPricing} onShowToast={showToast} />
         ) : currentRoute === 'pricing' ? (
-          <Pricing user={user} onShowToast={showToast} onNavigateToProfile={handleOpenProfile} />
+          <Pricing user={user} onShowToast={showToast} onNavigateToProfile={() => handleOpenProfile('billing')} />
         ) : currentRoute === 'saved-reports' ? (
           <SavedReports user={user} onShowToast={showToast} />
         ) : (
-          <Profile user={user} onShowToast={showToast} onNavigateToPricing={handleOpenPricing} />
+          <Profile user={user} onShowToast={showToast} onNavigateToPricing={handleOpenPricing} initialTab={profileTab} key={profileTab} />
         )}
         
         {/* GLobal Toast */}
