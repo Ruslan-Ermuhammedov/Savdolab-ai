@@ -25,8 +25,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       } else if (err?.code === 'auth/cancelled-popup-request' || err?.code === 'auth/popup-closed-by-user') {
          // User cancelled, we can ignore or just show a message.
         setErrorMsg('Kirish bekor qilindi.');
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        setErrorMsg('Ushbu domen Firebase ruxsat etilgan domenlar ro\'yxatiga qo\'shilmagan. Iltimos Firebase konsoliga kirib (Authentication -> Settings -> Authorized domains) ushbu domenni qo\'shing.');
       } else {
-        setErrorMsg('Tizimga kirishda xatolik yuz berdi. Iltimos qaytadan urining.');
+        setErrorMsg(err?.message || 'Tizimga kirishda xatolik yuz berdi. Iltimos qaytadan urining.');
       }
     }
   };
