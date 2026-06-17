@@ -1,6 +1,7 @@
 import React from 'react';
 import { TrendingProductsData } from '../types';
-import { TrendingUp, Users, Target, CircleDollarSign, Flame } from 'lucide-react';
+import { TrendingUp, Users, Target, CircleDollarSign, Flame, Activity } from 'lucide-react';
+import MarketTrendsChart from './MarketTrendsChart';
 
 export default function TrendingProductsView({ data }: { data: TrendingProductsData }) {
   return (
@@ -75,6 +76,15 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
                       </div>
                     </div>
                  </div>
+
+                 {product.trendData && product.trendData.length > 0 && (
+                    <div className="mt-6 bg-black/20 p-4 shrink-0 rounded-xl border border-white/5">
+                      <h4 className="text-[10px] font-semibold text-white/50 uppercase tracking-widest mb-2 flex items-center gap-2">
+                         <Activity size={12} className="text-blue-400" /> Topic Interest
+                      </h4>
+                      <MarketTrendsChart data={product.trendData} />
+                    </div>
+                 )}
               </div>
            ))}
         </div>

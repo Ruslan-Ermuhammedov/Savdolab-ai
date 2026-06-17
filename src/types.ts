@@ -26,6 +26,7 @@ export interface TrendingProduct {
   estimatedMargin: string;
   targetAudience: string;
   isPromising: boolean;
+  trendData?: { month: string; popularity: number }[];
 }
 
 export interface TrendingProductsData {

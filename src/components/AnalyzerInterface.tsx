@@ -11,6 +11,7 @@ import CompetitorSpyView from './AnalyzerCompetitorSpy';
 import AdAnalyzerView from './AnalyzerAdAnalyzer';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc, collection, addDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { Share2 } from 'lucide-react';
 
 import LandingExperience from './LandingExperience';
 
@@ -22,9 +23,12 @@ interface AnalyzerProps {
   key?: React.Key;
   onNavigateToPricing?: () => void;
   onShowToast: (msg: string) => void;
+  onRequireAuth?: (cb: () => void) => void;
+  language?: 'uz' | 'ru' | 'en';
+  sharedId?: string | null;
 }
 
-export default function AnalyzerInterface({ initialQuery = '', initialMode = 'winning-product', onAnalysisComplete, user, onNavigateToPricing, onShowToast }: AnalyzerProps) {
+export default function AnalyzerInterface({ initialQuery = '', initialMode = 'winning-product', sharedId = null, onAnalysisComplete, user, onNavigateToPricing, onShowToast, onRequireAuth, language = 'uz' }: AnalyzerProps) {
   const [prompt, setPrompt] = useState(initialQuery);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [image, setImage] = useState<File | null>(null);
@@ -34,7 +38,6 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
   const [error, setError] = useState<string | null>(null);
   const [submittedPrompt, setSubmittedPrompt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [lang, setLang] = useState<'UZ' | 'RU' | 'EN'>('UZ');
   
   const [activeMode, setActiveMode] = useState<AppMode>(initialMode);
   const [showAutoSuggest, setShowAutoSuggest] = useState(false);
@@ -45,6 +48,31 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
 
   const [isPromptSticky, setIsPromptSticky] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (sharedId) {
+       const loadShared = async () => {
+          setLoading(true);
+          try {
+             const docSnap = await getDoc(doc(db, 'public_reports', sharedId));
+             if (docSnap.exists()) {
+                const data = docSnap.data();
+                setResult({ data: data.data, mode: data.type } as any);
+                setActiveMode(data.type as any);
+                setSubmittedPrompt(data.title);
+             } else {
+                setError("Hisobot topilmadi yoki o'chirilgan.");
+             }
+          } catch(e) {
+             console.error("Error loading shared ID", e);
+             setError("Xatolik yuz berdi");
+          } finally {
+             setLoading(false);
+          }
+       };
+       loadShared();
+    }
+  }, [sharedId]);
 
   useEffect(() => {
     if (!heroRef.current) return;
@@ -118,7 +146,19 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     });
   };
 
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
   const performAnalysis = async (queryText: string, imgFile: File | null = null, modeToUse: AppMode) => {
+    // Determine the active user: either from props (which can trail slightly due to render cycles) or directly from auth.currentUser
+    const currentUser = userRef.current || auth.currentUser;
+    if (!currentUser) {
+       if (onRequireAuth) onRequireAuth(() => performAnalysis(queryText, imgFile, modeToUse));
+       return;
+    }
+
     setSubmittedPrompt(queryText || "Rasm orqali qidiruv");
     setLoading(true);
     setError(null);
@@ -135,10 +175,10 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     let userData = null;
     let newUsedCredits = 0;
 
-    if (user?.uid) {
+    if (currentUser?.uid) {
       try {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        const uRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(uRef);
         if (userSnap.exists()) {
           userData = userSnap.data();
           const totalC = userData.total_credits || 0;
@@ -177,7 +217,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     }
 
     try {
-      const payload: any = { text: queryText || "Ushbu mahsulotni analiz qiling", lang, mode: modeToUse };
+      const payload: any = { text: queryText || "Ushbu mahsulotni analiz qiling", lang: language.toUpperCase(), mode: modeToUse };
       
       if (imgFile) {
         const base64Data = await fileToBase64(imgFile);
@@ -204,15 +244,15 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
       setResult(data);
       
       // Consume credits
-      if (user?.uid && userData) {
+      if (currentUser?.uid && userData) {
          try {
-           await updateDoc(doc(db, 'users', user.uid), {
+           await updateDoc(doc(db, 'users', currentUser.uid), {
              used_credits: newUsedCredits,
              updatedAt: Date.now()
            });
            
            await addDoc(collection(db, 'usage_logs'), {
-             userId: user.uid,
+             userId: currentUser.uid,
              feature: modeToUse,
              credits_consumed: requiredCredits,
              timestamp: Date.now()
@@ -241,6 +281,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!prompt.trim() && !image) return;
+    
     setShowAutoSuggest(false);
     performAnalysis(prompt, image, activeMode);
   };
@@ -294,11 +335,17 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
   const handleDownloadCSV = async () => {
     if (!result?.data) return;
     
+    const currentUser = userRef.current || auth.currentUser;
+    if (!currentUser) {
+       if (onRequireAuth) onRequireAuth(() => handleDownloadCSV());
+       return;
+    }
+    
     // Export Report cost is 4 credits
-    if (user?.uid) {
+    if (currentUser.uid) {
       try {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        const uRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(uRef);
         if (userSnap.exists()) {
           const ud = userSnap.data();
           const planId = ud.plan_id || 'free';
@@ -349,12 +396,17 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
   };
 
   const handleSaveReport = async () => {
-    if (!result || !user?.uid) return;
+    if (!result) return;
+    
+    if (!userRef.current?.uid) {
+       if (onRequireAuth) onRequireAuth(() => handleSaveReport());
+       return;
+    }
 
     // Check plan limits
     let maxStorage = 0;
     try {
-        const userSnap = await getDoc(doc(db, 'users', user.uid));
+        const userSnap = await getDoc(doc(db, 'users', userRef.current.uid));
         if (userSnap.exists()) {
             const planId = userSnap.data().plan_id || 'free';
             if (planId === 'free') maxStorage = 0;
@@ -370,7 +422,9 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
         }
 
         // Count existing
-        const q = query(collection(db, 'saved_reports'), where('userId', '==', user.uid));
+        const currentUser = userRef.current || auth.currentUser;
+        if (!currentUser) return;
+        const q = query(collection(db, 'saved_reports'), where('userId', '==', currentUser.uid));
         const currentSnap = await getDocs(q);
         if (currentSnap.size >= maxStorage) {
             onShowToast(`Tarif limingiz to'ldi (${maxStorage} ta)`);
@@ -380,7 +434,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
         // Save
         const newRef = doc(collection(db, 'saved_reports'));
         await setDoc(newRef, {
-            userId: user.uid,
+            userId: currentUser.uid,
             type: result.mode,
             title: submittedPrompt || 'Tahlil Natijasi',
             data: result.data,
@@ -394,14 +448,39 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     }
   };
 
+  const handleShareReport = async () => {
+    if (!result) return;
+    try {
+        const newRef = doc(collection(db, 'public_reports'));
+        await setDoc(newRef, {
+            type: result.mode,
+            title: submittedPrompt || 'Tahlil Natijasi',
+            data: result.data,
+            createdAt: Date.now()
+        });
+        const shareLink = `${window.location.origin}/?shared=${newRef.id}`;
+        navigator.clipboard.writeText(shareLink);
+        onShowToast("Havola nusxalandi! Do'stlaringiz bilan ulashing.");
+    } catch(err) {
+        console.error(err);
+        onShowToast("Ulashishda xatolik yuz berdi");
+    }
+  };
+
   const handleDownloadPDF = async () => {
     const element = document.getElementById('report-content');
     if (!element) return;
     
-    if (user?.uid) {
+    const currentUser = userRef.current || auth.currentUser;
+    if (!currentUser) {
+       if (onRequireAuth) onRequireAuth(() => handleDownloadPDF());
+       return;
+    }
+
+    if (currentUser.uid) {
       try {
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        const uRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(uRef);
         if (userSnap.exists()) {
           const ud = userSnap.data();
           const planId = ud.plan_id || 'free';
@@ -418,12 +497,12 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
              setShowUpgradeModal(true);
              return;
           }
-          await updateDoc(userRef, {
+          await updateDoc(uRef, {
              used_credits: usedC + 4,
              updatedAt: Date.now()
           });
           await addDoc(collection(db, 'usage_logs'), {
-             userId: user.uid,
+             userId: currentUser.uid,
              feature: 'export-pdf',
              credits_consumed: 4,
              timestamp: Date.now()
@@ -602,17 +681,6 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
              <span className="text-xs font-bold text-white tracking-wider lowercase">AI</span>
          </div>
-         <div className="flex bg-[#0A0D12]/60 border border-white/10 rounded-full p-1 shadow-lg backdrop-blur-md">
-           {(['UZ', 'RU', 'EN'] as const).map(l => (
-             <button 
-               key={l}
-               onClick={() => setLang(l)}
-               className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${lang === l ? 'bg-[#1497F3] text-white shadow-[0_0_15px_rgba(20,151,243,0.4)]' : 'text-white/50 hover:text-white'}`}
-             >
-               {l}
-             </button>
-           ))}
-         </div>
       </div>
 
       <div className={`w-full mx-auto px-4 md:pl-[10px] md:pr-[20px] flex flex-col items-center justify-start h-full overflow-y-auto pb-40 transition-all duration-500`}>
@@ -738,6 +806,9 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                     <div className="flex-1 max-w-[1000px] w-[calc(100%-40px)] flex flex-col gap-6" id="report-container">
                         
                         <div className="flex justify-end px-2 gap-2" data-html2canvas-ignore="true">
+                          <button onClick={handleShareReport} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-[#1497F3] rounded-lg text-sm font-medium transition-colors border border-[#1497F3]/20 shadow-[0_0_15px_rgba(20,151,243,0.1)]">
+                            <Share2 size={14} /> Share
+                          </button>
                           <button onClick={handleSaveReport} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors border border-white/10">
                             <Bookmark size={14} /> Save Report
                           </button>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Search, Layers, FileText, BrainCircuit, LogOut, Settings, Menu, X, Clock, CreditCard, Bookmark } from 'lucide-react';
+import { Plus, Search, Layers, FileText, BrainCircuit, LogOut, Settings, Menu, X, Clock, CreditCard, Bookmark, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import savdolabLogo from '../Group 2 (3) 4.png';
 import { HistoryItem } from '../App';
@@ -14,9 +14,11 @@ interface SidebarProps {
   onShowToast: (msg: string) => void;
   history: HistoryItem[];
   user: any;
+  language: 'uz' | 'ru' | 'en';
+  onLanguageChange: (lang: 'uz' | 'ru' | 'en') => void;
 }
 
-export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPricing, onOpenSavedReports, onShowToast, history, user }: SidebarProps) {
+export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPricing, onOpenSavedReports, onShowToast, history, user, language, onLanguageChange }: SidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleComingSoon = (e: React.MouseEvent) => {
@@ -118,21 +120,44 @@ export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPr
         </button>
       </div>
 
+      <div className="mt-6 px-7 mb-2 text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+        Language
+      </div>
+      <div className="px-4 flex gap-1">
+         {['uz', 'ru', 'en'].map(lang => (
+           <button 
+             key={lang}
+             onClick={() => onLanguageChange(lang as any)}
+             className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold uppercase transition-colors ${language === lang ? 'bg-[#1497F3] text-white' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white/80'}`}
+           >
+             {lang}
+           </button>
+         ))}
+      </div>
+
       <div className="p-4 mt-auto">
-        <div className="flex items-center justify-between text-white/65 hover:text-white/95 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors font-medium border border-white/5 group cursor-pointer" onClick={() => { onOpenProfile(); setIsOpen(false); }}>
-            <div className="flex items-center gap-3 overflow-hidden">
-                <div className="w-6 h-6 rounded-full bg-[#1497F3] flex items-center justify-center text-white text-xs font-bold overflow-hidden">
-                   {user?.photoURL ? <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" /> : user?.displayName?.[0] || 'U'}
-                </div>
-                <div className="flex flex-col overflow-hidden max-w-[120px]">
-                  <span className="text-sm truncate leading-tight text-white/90">{user?.displayName || 'User'}</span>
-                  <span className="text-[10px] truncate text-white/40">{user?.email}</span>
-                </div>
-            </div>
-            <button onClick={(e) => { e.stopPropagation(); logOut(); }} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-red-400">
-              <LogOut size={16} />
+        {user ? (
+          <div className="flex items-center justify-between text-white/65 hover:text-white/95 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors font-medium border border-white/5 group cursor-pointer" onClick={() => { onOpenProfile(); setIsOpen(false); }}>
+              <div className="flex items-center gap-3 overflow-hidden">
+                  <div className="w-6 h-6 rounded-full bg-[#1497F3] flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+                     {user.photoURL ? <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" /> : user.displayName?.[0] || 'U'}
+                  </div>
+                  <div className="flex flex-col overflow-hidden max-w-[120px]">
+                    <span className="text-sm truncate leading-tight text-white/90">{user.displayName || 'User'}</span>
+                    <span className="text-[10px] truncate text-white/40">{user.email}</span>
+                  </div>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); logOut(); }} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-white/50 hover:text-red-400">
+                <LogOut size={16} />
+              </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <button onClick={() => { onOpenProfile(); setIsOpen(false); }} className="w-full bg-[#1497F3] hover:bg-[#1497F3]/90 text-white px-4 py-2.5 rounded-xl font-bold transition-colors text-sm shadow-[0_0_15px_rgba(20,151,243,0.3)]">
+              Tizimga kirish
             </button>
-        </div>
+          </div>
+        )}
       </div>
     </>
   );

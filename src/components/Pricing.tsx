@@ -9,9 +9,10 @@ interface PricingProps {
   onShowToast: (msg: string) => void;
   onNavigateToProfile: () => void;
   hideHeader?: boolean;
+  onRequireAuth?: (cb: () => void) => void;
 }
 
-export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHeader = false }: PricingProps) {
+export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHeader = false, onRequireAuth }: PricingProps) {
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<any[]>([]);
 
@@ -111,7 +112,9 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
 
   const handleSelectPlan = async (selectedPlan: any) => {
     if (!user) {
-      onShowToast("Tizimga koring");
+      if (onRequireAuth) {
+        onRequireAuth(() => handleSelectPlan(selectedPlan));
+      }
       return;
     }
     setLoading(true);

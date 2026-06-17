@@ -65,7 +65,17 @@ async function startServer() {
                     competitionLevel: { type: Type.STRING },
                     estimatedMargin: { type: Type.STRING },
                     targetAudience: { type: Type.STRING },
-                    isPromising: { type: Type.BOOLEAN }
+                    isPromising: { type: Type.BOOLEAN },
+                    trendData: {
+                      type: Type.ARRAY,
+                      items: {
+                        type: Type.OBJECT,
+                        properties: {
+                          month: { type: Type.STRING },
+                          popularity: { type: Type.NUMBER }
+                        }
+                      }
+                    }
                   }
                 }
               }

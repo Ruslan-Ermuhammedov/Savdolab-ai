@@ -14,6 +14,7 @@ import Pricing from './components/Pricing';
 import SpinWheel from './components/SpinWheel';
 import PromoBanner from './components/PromoBanner';
 import SavedReports from './components/SavedReports';
+import AuthModal from './components/AuthModal';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 
 export interface HistoryItem {
@@ -36,12 +37,27 @@ export default function App() {
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
   const [isSpinCompleted, setIsSpinCompleted] = useState<boolean>(true);
 
+  // Auth Modal State
+  const [authModalConfig, setAuthModalConfig] = useState<{ isOpen: boolean, onComplete?: () => void }>({ isOpen: false });
+
+  const requireAuth = (callback: () => void) => {
+    if (user) {
+      callback();
+    } else {
+      setAuthModalConfig({ isOpen: true, onComplete: callback });
+    }
+  };
+
   useEffect(() => {
     let unsubscribeSnapshot: (() => void) | undefined;
     import('./firebase').then(({ auth, db, handleFirestoreError, OperationType }) => {
       const unsubscribeAuto = auth.onAuthStateChanged(async (currentUser) => {
         setUser(currentUser);
         if (currentUser) {
+          if (authModalConfig.isOpen) {
+             setAuthModalConfig({ isOpen: false, onComplete: undefined });
+             if (authModalConfig.onComplete) authModalConfig.onComplete();
+          }
           unsubscribeSnapshot = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
             if (docSnap.exists()) {
                 if (docSnap.data().onboarding_completed) {
@@ -65,6 +81,20 @@ export default function App() {
          if (unsubscribeSnapshot) unsubscribeSnapshot();
       };
     });
+  }, [authModalConfig]); // depend on authModalConfig to execute callback when logged in
+
+  useEffect(() => {
+    // Check if there was a pending action after login redirect (if standard popup/redirect used)
+  }, []);
+
+  const [sharedId, setSharedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shared = params.get('shared');
+    if (shared) {
+       setSharedId(shared);
+    }
   }, []);
 
   useEffect(() => {
@@ -87,6 +117,7 @@ export default function App() {
   }, []);
 
   const [profileTab, setProfileTab] = useState('personal');
+  const [language, setLanguage] = useState<'uz' | 'ru' | 'en'>('uz');
 
   const handleNewTask = () => {
     setCurrentRoute('analyzer');
@@ -102,8 +133,16 @@ export default function App() {
   };
 
   const handleOpenProfile = (tab: string = 'personal') => {
-    setProfileTab(tab);
-    setCurrentRoute('profile');
+    requireAuth(() => {
+      setProfileTab(tab);
+      setCurrentRoute('profile');
+    });
+  };
+
+  const handleOpenSavedReports = () => {
+    requireAuth(() => {
+      setCurrentRoute('saved-reports');
+    });
   };
 
   const handleOpenPricing = () => {
@@ -128,25 +167,23 @@ export default function App() {
     return <div className="w-full h-screen bg-[#0A0D12] flex items-center justify-center text-white/50">Loading...</div>;
   }
 
-  if (!user) {
-    return <Login />;
-  }
-
-  if (isOnboardingCompleted === false) {
-    return <Onboarding onComplete={() => setIsOnboardingCompleted(true)} />;
-  }
-
   return (
     <div className="flex flex-col h-screen overflow-hidden w-full bg-transparent">
+      {user && isOnboardingCompleted === false && (
+        <div className="fixed inset-0 z-[200] bg-[#0A0D12]">
+          <Onboarding onComplete={() => setIsOnboardingCompleted(true)} />
+        </div>
+      )}
       <PromoBanner />
+      <AuthModal isOpen={authModalConfig.isOpen} onClose={() => setAuthModalConfig(prev => ({ ...prev, isOpen: false }))} />
       <div className="flex flex-col md:flex-row w-full flex-1 text-white overflow-hidden bg-transparent relative">
         {!isSpinCompleted && <SpinWheel user={user} onComplete={() => setIsSpinCompleted(true)} />}
-        <Sidebar onNewTask={handleNewTask} onOpenTask={handleOpenTask} onOpenProfile={handleOpenProfile} onOpenPricing={handleOpenPricing} onOpenSavedReports={() => setCurrentRoute('saved-reports' as any)} onShowToast={showToast} history={history} user={user} />
+        <Sidebar onNewTask={handleNewTask} onOpenTask={handleOpenTask} onOpenProfile={handleOpenProfile} onOpenPricing={handleOpenPricing} onOpenSavedReports={handleOpenSavedReports} onShowToast={showToast} history={history} user={user} language={language} onLanguageChange={setLanguage} />
         
         {currentRoute === 'analyzer' ? (
-          <AnalyzerInterface key={taskKey} initialQuery={initialQuery} initialMode={initialMode as any} onAnalysisComplete={addHistoryItem} user={user} onNavigateToPricing={handleOpenPricing} onShowToast={showToast} />
+          <AnalyzerInterface key={taskKey} initialQuery={initialQuery} initialMode={initialMode as any} sharedId={sharedId} onAnalysisComplete={addHistoryItem} user={user} onNavigateToPricing={handleOpenPricing} onShowToast={showToast} onRequireAuth={requireAuth} language={language} />
         ) : currentRoute === 'pricing' ? (
-          <Pricing user={user} onShowToast={showToast} onNavigateToProfile={() => handleOpenProfile('billing')} />
+          <Pricing user={user} onShowToast={showToast} onNavigateToProfile={() => handleOpenProfile('billing')} onRequireAuth={requireAuth} />
         ) : currentRoute === 'saved-reports' ? (
           <SavedReports user={user} onShowToast={showToast} />
         ) : (
