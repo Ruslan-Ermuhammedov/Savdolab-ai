@@ -3,15 +3,6 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    },
-  },
-});
-
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -23,6 +14,12 @@ async function startServer() {
 
   // API Routes
   app.post('/api/analyze', async (req, res) => {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ 
+        error: "Server configuration error: GEMINI_API_KEY environment variable is not defined. Iltimos serverda GEMINI_API_KEY ni o'rnating."
+      });
+    }
+
     try {
       const { text, image, lang = 'UZ', mode = 'winning-product' } = req.body;
 
@@ -154,6 +151,15 @@ async function startServer() {
       }
 
       parts.push({ text: systemPrompt });
+
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          },
+        },
+      });
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.5-flash',

@@ -187,7 +187,7 @@ export default function App() {
         ) : currentRoute === 'saved-reports' ? (
           <SavedReports user={user} onShowToast={showToast} />
         ) : (
-          <Profile user={user} onShowToast={showToast} onNavigateToPricing={handleOpenPricing} initialTab={profileTab} key={profileTab} />
+          <Profile user={user} onShowToast={showToast} onNavigateToPricing={handleOpenPricing} initialTab={profileTab} />
         )}
         
         {/* GLobal Toast */}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, X, Shield, Users, Building, Zap, Rocket, Award } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, getDoc, collection, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, updateDoc, setDoc } from 'firebase/firestore';
 
 interface PricingProps {
   user: any;

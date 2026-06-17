@@ -47,6 +47,10 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
   const [appSettings, setAppSettings] = useState<any>({});
   
   const [newPassword, setNewPassword] = useState('');
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
   
   useEffect(() => {
     const fetchUserData = async () => {

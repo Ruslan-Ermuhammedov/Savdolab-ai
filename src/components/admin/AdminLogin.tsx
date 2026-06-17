@@ -19,8 +19,8 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
       const snap = await getDoc(doc(db, 'app_settings', 'admin_auth'));
       const data = snap.exists() ? snap.data() : {};
       
-      const expectedUser = data.username || import.meta.env.VITE_ADMIN_USER || 'davlati';
-      const expectedPin = data.pin || import.meta.env.VITE_ADMIN_PIN || '2009';
+      const expectedUser = data.username || (import.meta as any).env?.VITE_ADMIN_USER || 'davlati';
+      const expectedPin = data.pin || (import.meta as any).env?.VITE_ADMIN_PIN || '2009';
 
       if (username === expectedUser && pin === expectedPin) {
         onLogin();
