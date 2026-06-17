@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, ArrowUp, Loader2, Image as ImageIcon, Sparkles, Download, Search, Activity, Tag, Link as LinkIcon, DollarSign, Plus, ArrowRight, User, Copy, Check, FileText, ChevronDown, Flame, Megaphone, Bookmark } from 'lucide-react';
+import { Upload, ArrowUp, Loader2, Image as ImageIcon, Sparkles, Download, Search, Activity, Tag, Link as LinkIcon, DollarSign, Plus, ArrowRight, User, Copy, Check, FileText, ChevronDown, Flame, Megaphone, Bookmark, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -45,9 +45,17 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const promptInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [isPromptSticky, setIsPromptSticky] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
+
+  const handleAbort = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (sharedId) {
@@ -227,13 +235,19 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
         };
       }
 
+      const abortController = new AbortController();
+      abortControllerRef.current = abortController;
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: abortController.signal,
       });
+
+      abortControllerRef.current = null;
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -266,9 +280,14 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
         onAnalysisComplete(queryText || "Image Search", modeToUse);
       }
     } catch (err: any) {
-      setError(err.message);
+      if (err.name === 'AbortError') {
+        setError("Tahlil bekor qilindi. Limit olib qolinmadi.");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -802,6 +821,9 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                           <div className="absolute bottom-6 right-6 flex items-center gap-3 bg-[#0A0D12]/80 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-lg z-20">
                             <Loader2 size={16} className="text-[#1497F3] animate-spin" />
                             <span className="text-[#89E4FF] text-sm font-medium animate-pulse">{loadingSteps[loadingStepIdx]}</span>
+                            <button onClick={handleAbort} className="w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center transition-colors ml-2" title="Bekor qilish">
+                              <X size={12} className="text-red-400" />
+                            </button>
                           </div>
                        </div>
                     </div>

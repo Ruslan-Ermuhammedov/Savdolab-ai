@@ -189,8 +189,8 @@ async function startServer() {
     } catch (error: any) {
       console.error('Error analyzing product:', error);
       let errorMessage = error.message || 'Internal server error';
-      if (errorMessage.includes('429') || errorMessage.includes('quota')) {
-        errorMessage = "Tarif rejangizdagi so'rovlar limiti tugadi (API 429). Iltimos, keyinroq urining yoki tizim sozlamalaridan API kalitni almashtiring.";
+      if (typeof errorMessage === 'string' && (errorMessage.includes('429') || errorMessage.includes('quota') || errorMessage.includes('RESOURCE_EXHAUSTED'))) {
+        errorMessage = "API so'rovlar chegarasiga yetildi (Rate Limit 429). Iltimos, bir oz kuting yoki boshqa API kalitdan foydalaning (masalan Gemini sozlamalarida).";
       }
       res.status(500).json({ error: errorMessage });
     }
