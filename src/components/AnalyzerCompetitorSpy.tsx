@@ -1,8 +1,10 @@
 import React from 'react';
 import { CompetitorSpyData } from '../types';
 import { Store, Crosshair, TrendingUp, ShieldAlert, Zap, Target } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 export default function CompetitorSpyView({ data }: { data: CompetitorSpyData }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-6" id="report-content">
       <div className="bg-[#111827] border border-white/10 rounded-[24px] p-6 shadow-2xl">
@@ -21,7 +23,7 @@ export default function CompetitorSpyView({ data }: { data: CompetitorSpyData })
         <div className="grid md:grid-cols-2 gap-6 mb-8">
            <div className="bg-white/5 rounded-xl p-5 border border-white/5">
               <h3 className="text-sm font-semibold text-white/70 uppercase tracking-wide mb-4 flex items-center gap-2">
-                <Target size={16} className="text-[#1497F3]" /> Top Products
+                <Target size={16} className="text-[#1497F3]" /> {t('reports.topProducts')}
               </h3>
               <ul className="space-y-2">
                 {data.topProducts.map((p, i) => (
@@ -35,11 +37,11 @@ export default function CompetitorSpyView({ data }: { data: CompetitorSpyData })
            
            <div className="flex flex-col gap-6">
               <div className="bg-white/5 rounded-xl p-5 border border-white/5">
-                <h3 className="text-xs text-white/50 uppercase mb-2">Business Model & Strategy</h3>
+                <h3 className="text-xs text-white/50 uppercase mb-2">{t('reports.businessModel')}</h3>
                 <p className="text-sm text-white/90 leading-relaxed">{data.businessModel}</p>
               </div>
               <div className="bg-white/5 rounded-xl p-5 border border-white/5">
-                <h3 className="text-xs text-white/50 uppercase mb-2">Core Target Audience</h3>
+                <h3 className="text-xs text-white/50 uppercase mb-2">{t('reports.targetAudience')}</h3>
                 <p className="text-sm text-white/90 leading-relaxed">{data.targetAudience}</p>
               </div>
            </div>
@@ -48,7 +50,7 @@ export default function CompetitorSpyView({ data }: { data: CompetitorSpyData })
         <div className="grid md:grid-cols-2 gap-6">
            <div className="bg-red-500/10 rounded-xl p-5 border border-red-500/20">
               <h3 className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-4 flex items-center gap-2">
-                <ShieldAlert size={16} /> Weaknesses
+                <ShieldAlert size={16} /> {t('reports.weaknesses')}
               </h3>
               <ul className="space-y-3">
                 {data.weaknesses.map((w, i) => (
@@ -62,7 +64,7 @@ export default function CompetitorSpyView({ data }: { data: CompetitorSpyData })
            
            <div className="bg-green-500/10 rounded-xl p-5 border border-green-500/20">
               <h3 className="text-sm font-semibold text-green-400 uppercase tracking-wide mb-4 flex items-center gap-2">
-                <Zap size={16} /> Growth Opportunities
+                <Zap size={16} /> {t('reports.growthOpportunities')}
               </h3>
               <ul className="space-y-3">
                 {data.growthOpportunities.map((g, i) => (

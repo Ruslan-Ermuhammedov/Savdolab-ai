@@ -7,15 +7,14 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import AnalyzerInterface from './components/AnalyzerInterface';
-import Login from './components/Login';
 import Onboarding from './components/Onboarding';
 import Profile from './components/Profile';
 import Pricing from './components/Pricing';
 import SpinWheel from './components/SpinWheel';
 import PromoBanner from './components/PromoBanner';
 import SavedReports from './components/SavedReports';
-import AuthModal from './components/AuthModal';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { useI18n } from './i18n';
 
 export interface HistoryItem {
   id: string;
@@ -25,6 +24,7 @@ export interface HistoryItem {
 }
 
 export default function App() {
+  const { language, setLanguage, t } = useI18n();
   const [taskKey, setTaskKey] = useState(0);
   const [initialQuery, setInitialQuery] = useState<string>('');
   const [initialMode, setInitialMode] = useState<string>('winning-product');
@@ -37,14 +37,11 @@ export default function App() {
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
   const [isSpinCompleted, setIsSpinCompleted] = useState<boolean>(true);
 
-  // Auth Modal State
-  const [authModalConfig, setAuthModalConfig] = useState<{ isOpen: boolean, onComplete?: () => void }>({ isOpen: false });
-
   const requireAuth = (callback: () => void) => {
     if (user) {
       callback();
     } else {
-      setAuthModalConfig({ isOpen: true, onComplete: callback });
+      showToast(t('app.loginDisabled'));
     }
   };
 
@@ -54,10 +51,6 @@ export default function App() {
       const unsubscribeAuto = auth.onAuthStateChanged(async (currentUser) => {
         setUser(currentUser);
         if (currentUser) {
-          if (authModalConfig.isOpen) {
-             setAuthModalConfig({ isOpen: false, onComplete: undefined });
-             if (authModalConfig.onComplete) authModalConfig.onComplete();
-          }
           unsubscribeSnapshot = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
             if (docSnap.exists()) {
                 if (docSnap.data().onboarding_completed) {
@@ -81,7 +74,7 @@ export default function App() {
          if (unsubscribeSnapshot) unsubscribeSnapshot();
       };
     });
-  }, [authModalConfig]); // depend on authModalConfig to execute callback when logged in
+  }, []);
 
   useEffect(() => {
     // Check if there was a pending action after login redirect (if standard popup/redirect used)
@@ -103,13 +96,13 @@ export default function App() {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         handleNewTask();
-        showToast("Started a new task (Ctrl+N)");
+        showToast(t('app.newTaskStarted'));
       }
       // Ctrl/Cmd + K
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent('focusPrompt'));
-        showToast("Prompt focused (Ctrl+K)");
+        showToast(t('app.promptFocused'));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -117,7 +110,6 @@ export default function App() {
   }, []);
 
   const [profileTab, setProfileTab] = useState('personal');
-  const [language, setLanguage] = useState<'uz' | 'ru' | 'en'>('uz');
 
   const handleNewTask = () => {
     setCurrentRoute('analyzer');
@@ -133,16 +125,20 @@ export default function App() {
   };
 
   const handleOpenProfile = (tab: string = 'personal') => {
-    requireAuth(() => {
-      setProfileTab(tab);
-      setCurrentRoute('profile');
-    });
+    if (!user) {
+      showToast(t('app.profileRequiresLogin'));
+      return;
+    }
+    setProfileTab(tab);
+    setCurrentRoute('profile');
   };
 
   const handleOpenSavedReports = () => {
-    requireAuth(() => {
-      setCurrentRoute('saved-reports');
-    });
+    if (!user) {
+      showToast(t('app.savedReportsRequireLogin'));
+      return;
+    }
+    setCurrentRoute('saved-reports');
   };
 
   const handleOpenPricing = () => {
@@ -164,7 +160,7 @@ export default function App() {
   };
 
   if (authLoading) {
-    return <div className="w-full h-screen bg-[#0A0D12] flex items-center justify-center text-white/50">Loading...</div>;
+    return <div className="w-full h-screen bg-[#0A0D12] flex items-center justify-center text-white/50">{t('common.loading')}</div>;
   }
 
   return (
@@ -175,7 +171,6 @@ export default function App() {
         </div>
       )}
       <PromoBanner />
-      <AuthModal isOpen={authModalConfig.isOpen} onClose={() => setAuthModalConfig(prev => ({ ...prev, isOpen: false }))} />
       <div className="flex flex-col md:flex-row w-full flex-1 text-white overflow-hidden bg-transparent relative">
         {!isSpinCompleted && <SpinWheel user={user} onComplete={() => setIsSpinCompleted(true)} />}
         <Sidebar onNewTask={handleNewTask} onOpenTask={handleOpenTask} onOpenProfile={handleOpenProfile} onOpenPricing={handleOpenPricing} onOpenSavedReports={handleOpenSavedReports} onShowToast={showToast} history={history} user={user} language={language} onLanguageChange={setLanguage} />

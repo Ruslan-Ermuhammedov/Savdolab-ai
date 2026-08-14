@@ -3,8 +3,10 @@ import { db } from '../firebase';
 import { collection, query, getDocs, updateDoc, doc, addDoc, deleteDoc } from 'firebase/firestore';
 import { Plus, Trash2, Edit2, Play, Square, Eye, MousePointerClick } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useI18n } from '../i18n';
 
 export default function AdminBanners({ onShowToast }: { onShowToast: (msg: string) => void }) {
+    const { t } = useI18n();
     const [banners, setBanners] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingBanner, setEditingBanner] = useState<any | null>(null);
@@ -21,15 +23,15 @@ export default function AdminBanners({ onShowToast }: { onShowToast: (msg: strin
             setBanners(fetched);
         } catch (e) {
             console.error(e);
-            onShowToast("Xatolik");
+            onShowToast(t('common.error'));
         }
         setLoading(false);
     };
 
     const handleCreate = async () => {
         const newBanner = {
-            title: 'Yangi Aksiya',
-            description: 'Chegirmalar',
+            title: t('admin.bannerNewTitle'),
+            description: t('admin.bannerNewDescription'),
             promoCode: 'SAVE50',
             ctaLink: '',
             enabled: false,
@@ -42,18 +44,18 @@ export default function AdminBanners({ onShowToast }: { onShowToast: (msg: strin
         try {
             const ref = await addDoc(collection(db, 'promo_banners'), newBanner);
             setBanners([...banners, { id: ref.id, ...newBanner }]);
-            onShowToast("Yaratildi");
+            onShowToast(t('admin.created'));
         } catch (e) {
             console.error(e);
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+        if (!confirm(t('admin.deleteConfirm'))) return;
         try {
             await deleteDoc(doc(db, 'promo_banners', id));
             setBanners(banners.filter(b => b.id !== id));
-            onShowToast("O'chirildi");
+            onShowToast(t('admin.deleted'));
         } catch (e) {}
     };
 
@@ -71,9 +73,9 @@ export default function AdminBanners({ onShowToast }: { onShowToast: (msg: strin
             await updateDoc(doc(db, 'promo_banners', id), data);
             setBanners(banners.map(b => b.id === id ? editingBanner : b));
             setEditingBanner(null);
-            onShowToast("Saqlandi");
+            onShowToast(t('common.save'));
         } catch (e) {
-            onShowToast("Xato");
+            onShowToast(t('common.error'));
         }
     };
 
@@ -88,47 +90,47 @@ export default function AdminBanners({ onShowToast }: { onShowToast: (msg: strin
         return d.toISOString().slice(0, 16);
     };
 
-    if (loading) return <div>Yuklanmoqda...</div>;
+    if (loading) return <div>{t('common.loading')}</div>;
 
     if (editingBanner) {
         return (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <h3 className="font-bold text-lg mb-4">Targhibot tahriri</h3>
+                <h3 className="font-bold text-lg mb-4">{t('admin.bannerEditor')}</h3>
                 <div className="space-y-4">
                     <div>
-                        <label className="text-xs text-white/50 block mb-1">Sarlavha</label>
+                        <label className="text-xs text-white/50 block mb-1">{t('admin.title')}</label>
                         <input className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-white" value={editingBanner.title} onChange={e => setEditingBanner({...editingBanner, title: e.target.value})} />
                     </div>
                     <div>
-                        <label className="text-xs text-white/50 block mb-1">Tavsif</label>
+                        <label className="text-xs text-white/50 block mb-1">{t('admin.description')}</label>
                         <input className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-white" value={editingBanner.description} onChange={e => setEditingBanner({...editingBanner, description: e.target.value})} />
                     </div>
                     <div>
-                        <label className="text-xs text-white/50 block mb-1">Promo Kod</label>
+                        <label className="text-xs text-white/50 block mb-1">{t('admin.promoCode')}</label>
                         <input className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-white" value={editingBanner.promoCode} onChange={e => setEditingBanner({...editingBanner, promoCode: e.target.value})} />
                     </div>
                     <div>
-                        <label className="text-xs text-white/50 block mb-1">CTA Havolasi (Link)</label>
+                        <label className="text-xs text-white/50 block mb-1">{t('admin.ctaLink')}</label>
                         <input className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-white" value={editingBanner.ctaLink} onChange={e => setEditingBanner({...editingBanner, ctaLink: e.target.value})} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs text-white/50 block mb-1">Boshlanish</label>
+                            <label className="text-xs text-white/50 block mb-1">{t('admin.start')}</label>
                             <input type="datetime-local" className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-white" value={formatDate(editingBanner.startDate)} onChange={e => handleDateChange('startDate', e.target.value)} />
                         </div>
                         <div>
-                            <label className="text-xs text-white/50 block mb-1">Tugash</label>
+                            <label className="text-xs text-white/50 block mb-1">{t('admin.end')}</label>
                             <input type="datetime-local" className="w-full bg-black/50 border border-white/10 rounded-lg p-2 text-white" value={formatDate(editingBanner.endDate)} onChange={e => handleDateChange('endDate', e.target.value)} />
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         <input type="checkbox" checked={editingBanner.enableCountdown} onChange={e => setEditingBanner({...editingBanner, enableCountdown: e.target.checked})} className="w-4 h-4" />
-                        <label className="text-sm">Taymerni yoqish (Countdown)</label>
+                        <label className="text-sm">{t('admin.enableCountdown')}</label>
                     </div>
 
                     <div className="flex gap-2 pt-4">
-                        <button onClick={handleSaveEdit} className="bg-[#1497F3] text-white px-4 py-2 rounded-lg text-sm font-medium">Saqlash</button>
-                        <button onClick={() => setEditingBanner(null)} className="bg-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium">Bekor qilish</button>
+                        <button onClick={handleSaveEdit} className="bg-[#1497F3] text-white px-4 py-2 rounded-lg text-sm font-medium">{t('common.save')}</button>
+                        <button onClick={() => setEditingBanner(null)} className="bg-white/10 text-white px-4 py-2 rounded-lg text-sm font-medium">{t('common.cancel')}</button>
                     </div>
                 </div>
             </div>
@@ -138,9 +140,9 @@ export default function AdminBanners({ onShowToast }: { onShowToast: (msg: strin
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center bg-white/5 border border-white/10 rounded-2xl p-4">
-                <h3 className="font-bold">Promo Banners</h3>
+                <h3 className="font-bold">{t('admin.promoBanners')}</h3>
                 <button onClick={handleCreate} className="flex items-center gap-2 bg-[#1497F3] text-white px-3 py-1.5 rounded-lg text-sm font-medium">
-                    <Plus size={16} /> Qo'shish
+                    <Plus size={16} /> {t('admin.add')}
                 </button>
             </div>
 

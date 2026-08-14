@@ -8,6 +8,7 @@ import WinningProductView from './AnalyzerWinningProduct';
 import TrendingProductsView from './AnalyzerTrendingProducts';
 import CompetitorSpyView from './AnalyzerCompetitorSpy';
 import AdAnalyzerView from './AnalyzerAdAnalyzer';
+import { useI18n } from '../i18n';
 
 interface SavedReportsProps {
     user: any;
@@ -16,6 +17,7 @@ interface SavedReportsProps {
 }
 
 export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
+    const { t } = useI18n();
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,22 +41,22 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
             setReports(fetched);
         } catch (e) {
             console.error("Error fetching reports", e);
-            onShowToast("Hisobotlarni yuklashda xatolik");
+            onShowToast(t('savedReports.loadError'));
         }
         setLoading(false);
     };
 
     const handleDelete = async (id: string, e?: React.MouseEvent) => {
         if(e) e.stopPropagation();
-        if(!confirm("Haqiqatan ham bu hisobotni o'chirmoqchimisiz?")) return;
+        if(!confirm(t('savedReports.deleteConfirm'))) return;
         try {
             await deleteDoc(doc(db, 'saved_reports', id));
             setReports(prev => prev.filter(r => r.id !== id));
             if(selectedReport && selectedReport.id === id) setSelectedReport(null);
-            onShowToast("Hisobot o'chirildi");
+            onShowToast(t('savedReports.deleted'));
         } catch (err) {
             console.error(err);
-            onShowToast("Xatolik yuz berdi");
+            onShowToast(t('common.error'));
         }
     };
 
@@ -64,17 +66,17 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
             const newRef = doc(collection(db, 'saved_reports'));
             const newReport = {
                 ...report,
-                title: report.title + ' (Nusxa)',
+                title: report.title + ' (' + t('common.duplicate') + ')',
                 createdAt: Date.now(),
                 id: newRef.id // not stored in DB, but just in case
             };
             delete newReport.id;
             await setDoc(newRef, newReport);
-            onShowToast("Nusxa olindi");
+            onShowToast(t('savedReports.copied'));
             fetchReports();
         } catch(err) {
             console.error(err);
-            onShowToast("Xatolik yuz berdi");
+            onShowToast(t('common.error'));
         }
     };
 
@@ -110,10 +112,10 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
 
     const formatType = (type: string) => {
         switch(type) {
-            case 'winning-product': return 'Product Finder';
-            case 'trending-products': return 'Trend Hunter';
+            case 'winning-product': return t('savedReports.productFinder');
+            case 'trending-products': return t('savedReports.trendHunter');
             case 'competitor-spy': return 'Competitor Spy';
-            case 'ad-analyzer': return 'Ad Analyzer';
+            case 'ad-analyzer': return t('savedReports.adAnalyzer');
             default: return type;
         }
     };
@@ -123,17 +125,17 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
             <div className="flex flex-col h-full bg-[#0f1115] w-full p-4 md:p-8 overflow-y-auto custom-scrollbar">
                 <div className="flex items-center justify-between mb-8 max-w-[800px] mx-auto w-full">
                     <button onClick={() => setSelectedReport(null)} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-white/70 text-sm transition-colors">
-                        Ortga
+                        {t('common.back')}
                     </button>
                     <div className="flex gap-2">
                         <button onClick={() => handleExportPDF(selectedReport)} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-white/70 text-sm transition-colors flex items-center gap-2">
                             <Download size={14} /> PDF
                         </button>
                         <button onClick={() => handleDuplicate(selectedReport)} className="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-white/70 text-sm transition-colors flex items-center gap-2">
-                            <Copy size={14} /> Duplicate
+                            <Copy size={14} /> {t('common.duplicate')}
                         </button>
                         <button onClick={() => handleDelete(selectedReport.id)} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm transition-colors flex items-center gap-2">
-                            <Trash2 size={14} /> Delete
+                            <Trash2 size={14} /> {t('common.delete')}
                         </button>
                     </div>
                 </div>
@@ -168,8 +170,8 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
             <div className="max-w-6xl mx-auto w-full">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">Saqlangan Hisobotlar</h1>
-                        <p className="text-white/60">Tahlil natijalarini bu yerda boshqaring.</p>
+                        <h1 className="text-3xl font-bold mb-2">{t('savedReports.title')}</h1>
+                        <p className="text-white/60">{t('savedReports.subtitle')}</p>
                     </div>
                 </div>
 
@@ -178,7 +180,7 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" size={18} />
                         <input
                             type="text"
-                            placeholder="Qidirish..."
+                            placeholder={t('savedReports.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-[#1497F3] transition-colors"
@@ -190,11 +192,11 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
                             onChange={(e) => setFilterType(e.target.value)}
                             className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:border-[#1497F3] transition-colors appearance-none"
                         >
-                            <option value="all">Barchasi</option>
-                            <option value="winning-product">Product Reports</option>
-                            <option value="trending-products">Trend Reports</option>
-                            <option value="competitor-spy">Competitor Reports</option>
-                            <option value="ad-analyzer">Ad Reports</option>
+                            <option value="all">{t('common.all')}</option>
+                            <option value="winning-product">{t('savedReports.productReports')}</option>
+                            <option value="trending-products">{t('savedReports.trendReports')}</option>
+                            <option value="competitor-spy">{t('savedReports.competitorReports')}</option>
+                            <option value="ad-analyzer">{t('savedReports.adReports')}</option>
                         </select>
                     </div>
                 </div>
@@ -206,8 +208,8 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
                 ) : filteredReports.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-32 bg-white/5 rounded-3xl border border-white/5 border-dashed">
                         <FileText size={48} className="text-white/20 mb-4" />
-                        <h3 className="text-xl font-bold text-white/50 mb-2">Hisobotlar yo'q</h3>
-                        <p className="text-white/30 text-sm">Hali hech qanday natija saqlamadingiz.</p>
+                        <h3 className="text-xl font-bold text-white/50 mb-2">{t('savedReports.noReportsTitle')}</h3>
+                        <p className="text-white/30 text-sm">{t('savedReports.noReportsBody')}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 pb-20">
@@ -234,10 +236,10 @@ export default function SavedReports({ user, onShowToast }: SavedReportsProps) {
                                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
                                     <span className="text-xs text-white/40">{new Date(report.createdAt).toLocaleDateString('uz-UZ')}</span>
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={(e) => handleDuplicate(report, e)} className="p-1.5 hover:bg-white/10 rounded-md text-white/60 hover:text-white transition-colors" title="Nusxa olish">
+                                        <button onClick={(e) => handleDuplicate(report, e)} className="p-1.5 hover:bg-white/10 rounded-md text-white/60 hover:text-white transition-colors" title={t('common.duplicate')}>
                                             <Copy size={14} />
                                         </button>
-                                        <button onClick={(e) => handleDelete(report.id, e)} className="p-1.5 hover:bg-red-500/20 rounded-md text-white/60 hover:text-red-400 transition-colors" title="O'chirish">
+                                        <button onClick={(e) => handleDelete(report.id, e)} className="p-1.5 hover:bg-red-500/20 rounded-md text-white/60 hover:text-red-400 transition-colors" title={t('common.delete')}>
                                             <Trash2 size={14} />
                                         </button>
                                     </div>

@@ -3,8 +3,10 @@ import { db } from '../firebase';
 import { collection, query, where, getDocs, updateDoc, doc, increment } from 'firebase/firestore';
 import { X, Clock, ArrowRight, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useI18n } from '../i18n';
 
 export default function PromoBanner() {
+    const { t } = useI18n();
     const [banners, setBanners] = useState<any[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [hiddenBanners, setHiddenBanners] = useState<Set<string>>(new Set());
@@ -110,9 +112,9 @@ export default function PromoBanner() {
                         <div 
                             onClick={handleCopyParam}
                             className="flex items-center gap-2 bg-black/40 hover:bg-black/60 px-3 py-1 rounded-md border border-white/20 cursor-pointer transition-colors"
-                            title="Nusxa olish"
+                            title={t('common.duplicate')}
                         >
-                            <span className="text-white/60 text-xs">Kod:</span>
+                            <span className="text-white/60 text-xs">{t('admin.code')}:</span>
                             <span className="font-mono font-bold text-[#14F3A9] tracking-wider">{banner.promoCode}</span>
                         </div>
                     )}
@@ -126,7 +128,7 @@ export default function PromoBanner() {
 
                     {banner.ctaLink && (
                         <button onClick={handleCTA} className="px-4 py-1.5 bg-white text-black rounded-lg font-bold text-xs hover:bg-gray-200 transition-colors flex items-center gap-1.5">
-                            Batafsil <ArrowRight size={12} />
+                            {t('admin.details')} <ArrowRight size={12} />
                         </button>
                     )}
 

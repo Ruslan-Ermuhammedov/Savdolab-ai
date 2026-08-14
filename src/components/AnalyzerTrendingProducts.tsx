@@ -2,8 +2,10 @@ import React from 'react';
 import { TrendingProductsData } from '../types';
 import { TrendingUp, Users, Target, CircleDollarSign, Flame, Activity } from 'lucide-react';
 import MarketTrendsChart from './MarketTrendsChart';
+import { useI18n } from '../i18n';
 
 export default function TrendingProductsView({ data }: { data: TrendingProductsData }) {
+  const { t } = useI18n();
   return (
     <div className="flex flex-col gap-6" id="report-content">
       <div className="bg-[#111827] border border-white/10 rounded-[24px] p-6 shadow-2xl">
@@ -11,7 +13,7 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
            <Flame className="text-orange-500" />
            Top Trending: {data.categoryAnalyzed}
         </h2>
-        <p className="text-white/60 text-sm mb-6">These products are currently showing the fastest growth rate and highest demand signals.</p>
+        <p className="text-white/60 text-sm mb-6">{t('reports.promising')}</p>
 
         <div className="space-y-4">
            {data.products.map((product, idx) => (
@@ -30,7 +32,7 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
                    </h3>
                    {product.isPromising && (
                      <span className="bg-[#1497F3] text-white text-[10px] px-2 py-1 rounded-full font-bold tracking-wider uppercase flex items-center gap-1">
-                       <Flame size={12} /> Top Pick
+                       <Flame size={12} /> {t('reports.promising')}
                      </span>
                    )}
                  </div>
@@ -41,7 +43,7 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
                         <TrendingUp size={14} className="text-blue-400" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-white/50 uppercase">Growth</span>
+                        <span className="text-[10px] text-white/50 uppercase">{t('reports.growthRate')}</span>
                         <span className="text-white/90 font-medium">{product.growthRate}</span>
                       </div>
                     </div>
@@ -51,7 +53,7 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
                          <Target size={14} className="text-purple-400" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-white/50 uppercase">Competition</span>
+                        <span className="text-[10px] text-white/50 uppercase">{t('reports.competition')}</span>
                         <span className="text-white/90 font-medium">{product.competitionLevel}</span>
                       </div>
                     </div>
@@ -61,7 +63,7 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
                          <CircleDollarSign size={14} className="text-green-400" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-white/50 uppercase">Est. Margin</span>
+                        <span className="text-[10px] text-white/50 uppercase">{t('reports.estimatedMargin')}</span>
                         <span className="text-white/90 font-medium">{product.estimatedMargin}</span>
                       </div>
                     </div>
@@ -71,7 +73,7 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
                          <Users size={14} className="text-orange-400" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-white/50 uppercase">Audience</span>
+                        <span className="text-[10px] text-white/50 uppercase">{t('reports.targetAudience')}</span>
                         <span className="text-white/90 font-medium">{product.targetAudience}</span>
                       </div>
                     </div>
@@ -80,7 +82,7 @@ export default function TrendingProductsView({ data }: { data: TrendingProductsD
                  {product.trendData && product.trendData.length > 0 && (
                     <div className="mt-6 bg-black/20 p-4 shrink-0 rounded-xl border border-white/5">
                       <h4 className="text-[10px] font-semibold text-white/50 uppercase tracking-widest mb-2 flex items-center gap-2">
-                         <Activity size={12} className="text-blue-400" /> Topic Interest
+                         <Activity size={12} className="text-blue-400" /> {t('reports.marketTrends')}
                       </h4>
                       <MarketTrendsChart data={product.trendData} />
                     </div>

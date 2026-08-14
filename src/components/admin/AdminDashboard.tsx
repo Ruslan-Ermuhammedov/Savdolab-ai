@@ -7,6 +7,7 @@ import {
   LifeBuoy, Settings, ShieldAlert, LogOut, Loader2
 } from 'lucide-react';
 import { auth } from '../../firebase';
+import { useI18n } from '../../i18n';
 
 // Placeholder empty components to prevent missing imports
 import AdminOverview from './views/AdminOverview';
@@ -27,6 +28,7 @@ import SystemSettings from './views/SystemSettings';
 import AuditLogs from './views/AuditLogs';
 
 export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [toast, setToast] = useState<string | null>(null);
 
@@ -36,22 +38,22 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   };
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'users', label: 'Users', icon: Users },
-    { id: 'credits', label: 'Credits', icon: CreditCard },
-    { id: 'payments', label: 'Payments', icon: DollarSign },
-    { id: 'pricing', label: 'Pricing Plans', icon: CircleDollarSign },
-    { id: 'landing', label: 'Landing Manager', icon: Layout },
-    { id: 'banners', label: 'Promo Banners', icon: ImageIcon },
-    { id: 'spinwheel', label: 'Spin Wheel', icon: Gift },
-    { id: 'agents', label: 'AI Agents', icon: Bot },
-    { id: 'features', label: 'Feature Toggles', icon: Settings2 },
-    { id: 'reports', label: 'Saved Reports', icon: Bookmark },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'support', label: 'Support', icon: LifeBuoy },
-    { id: 'settings', label: 'System Settings', icon: Settings },
-    { id: 'audit', label: 'Audit Logs', icon: ShieldAlert },
+    { id: 'dashboard', label: t('admin.dashboard'), icon: BarChart3 },
+    { id: 'users', label: t('admin.users'), icon: Users },
+    { id: 'credits', label: t('admin.credits'), icon: CreditCard },
+    { id: 'payments', label: t('admin.payments'), icon: DollarSign },
+    { id: 'pricing', label: t('admin.pricing'), icon: CircleDollarSign },
+    { id: 'landing', label: t('admin.landingManager'), icon: Layout },
+    { id: 'banners', label: t('admin.promoBanners'), icon: ImageIcon },
+    { id: 'spinwheel', label: t('admin.spinWheel'), icon: Gift },
+    { id: 'agents', label: t('admin.aiAgents'), icon: Bot },
+    { id: 'features', label: t('admin.featureToggles'), icon: Settings2 },
+    { id: 'reports', label: t('admin.reports'), icon: Bookmark },
+    { id: 'analytics', label: t('admin.analytics'), icon: BarChart3 },
+    { id: 'notifications', label: t('admin.notifications'), icon: Bell },
+    { id: 'support', label: t('admin.support'), icon: LifeBuoy },
+    { id: 'settings', label: t('admin.settings'), icon: Settings },
+    { id: 'audit', label: t('admin.auditLogs'), icon: ShieldAlert },
   ];
 
   const renderContent = () => {
@@ -105,7 +107,7 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         <div className="p-4 border-t border-white/5">
            <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-400 hover:bg-red-400/10 transition-colors">
-              <LogOut size={18} /> Logout
+              <LogOut size={18} /> {t('admin.logout')}
            </button>
         </div>
       </div>

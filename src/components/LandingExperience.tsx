@@ -1,11 +1,17 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Flame, Search, Megaphone, Play, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import Pricing from './Pricing';
+import { useI18n } from '../i18n';
+import earbudsImage from '../../assets/t_product_540_high.webp';
+import blenderImage from '../../assets/28грам-optimized.webp';
+import petHairRemoverImage from '../../assets/T8JiTKwq.webp';
+import postureCorrectorImage from '../../assets/t_product_low.webp';
 
 export default function LandingExperience({ onNavigateToPricing }: { onNavigateToPricing?: () => void }) {
+  const { t, get } = useI18n();
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
@@ -30,32 +36,64 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
     return <div className="w-full py-20 flex justify-center"><div className="animate-pulse w-10 h-10 bg-white/10 rounded-full" /></div>;
   }
 
-  // Default configuration if missing (these mimic the requirement)
+  const featureCopy = get<Record<string, { title: string; desc: string; highlights: string[] }>>('landing.featureCards');
+  const trendingCopy = get<Record<string, { name: string; category: string }>>('landing.trendingProducts');
+  const whyCards = get<{ title: string; desc: string }[]>('landing.whyCards');
+  const metricLabels = get<string[]>('landing.metrics');
+  const comparisonManual = get<string[]>('landing.comparisonManual');
+  const comparisonSavdolab = get<string[]>('landing.comparisonSavdolab');
+  const defaultFaq = get<{ q: string; a: string }[]>('landing.defaultFaq');
+
+  const featureIcons = ['Sparkles', 'Flame', 'Search', 'Megaphone'];
+  const productImages: Record<string, string> = {
+    '1': earbudsImage,
+    '2': blenderImage,
+    '3': postureCorrectorImage,
+    '4': petHairRemoverImage,
+  };
+
+  const localizedFeature = (feature: any) => {
+    const copy = featureCopy?.[String(feature.id)];
+    return {
+      ...feature,
+      title: copy?.title || feature.title,
+      desc: copy?.desc || feature.desc,
+      highlights: copy?.highlights || feature.highlights,
+    };
+  };
+
+  const localizedProduct = (product: any) => {
+    const copy = trendingCopy?.[String(product.id)];
+    return {
+      ...product,
+      name: copy?.name || product.name,
+      category: copy?.category || product.category,
+      image: productImages[String(product.id)] || product.image,
+    };
+  };
+
+  const localizedWhyCard = (card: any, index: number) => whyCards?.[index] || card;
+  const localizedMetric = (stat: any, index: number) => ({ ...stat, label: metricLabels?.[index] || stat.label });
+
+  const highlightItems = (highlights: string[] | string) => {
+    if (Array.isArray(highlights)) return highlights;
+    return highlights.split(/\s*(?:\u2022|\|)\s*/).filter(Boolean);
+  };
+
   const defaultConf = {
-    features: [
-      { id: '1', icon: 'Sparkles', title: 'Winning Product Finder', desc: 'Find high-margin products with low competition in seconds.', highlights: 'Real-time data • Margin calculator • Supplier links', enabled: true },
-      { id: '2', icon: 'Flame', title: 'Trend Hunter', desc: 'Spot viral trends before they hit the mainstream market.', highlights: 'TikTok trends • Google search data • Rising niches', enabled: true },
-      { id: '3', icon: 'Search', title: 'Competitor Spy', desc: 'Reverse engineer your competitors successful stores.', highlights: 'Ad library access • Traffic sources • Top products', enabled: true },
-      { id: '4', icon: 'Megaphone', title: 'Ad Analyzer', desc: 'Generate high-converting ad copy and creatives instantly.', highlights: 'AI copywriting • Image generation • Split testing', enabled: true }
-    ],
+    features: Object.entries(featureCopy).map(([id, copy], index) => ({ id, icon: featureIcons[index] || 'Sparkles', ...(copy as { title: string; desc: string; highlights: string[] }), enabled: true })),
     trending: { enabled: true, products: [
-       { id: '1', name: 'Smart Wireless Earbuds', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=300&auto=format&fit=crop', score: 98, growth: '+142%', category: 'Electronics' },
-       { id: '2', name: 'Portable Mini Blender', image: 'https://images.unsplash.com/photo-1626806819282-2c1dc01a5e0c?q=80&w=300&auto=format&fit=crop', score: 95, growth: '+89%', category: 'Home & Kitchen' },
-       { id: '3', name: 'Posture Corrector', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=300&auto=format&fit=crop', score: 91, growth: '+210%', category: 'Health' },
-       { id: '4', name: 'Pet Hair Remover', image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?q=80&w=300&auto=format&fit=crop', score: 88, growth: '+65%', category: 'Pets' }
+       { id: '1', ...(trendingCopy['1'] || {}), image: earbudsImage, score: 98, growth: '+142%' },
+       { id: '2', ...(trendingCopy['2'] || {}), image: blenderImage, score: 95, growth: '+89%' },
+       { id: '3', ...(trendingCopy['3'] || {}), image: postureCorrectorImage, score: 91, growth: '+210%' },
+       { id: '4', ...(trendingCopy['4'] || {}), image: petHairRemoverImage, score: 88, growth: '+65%' }
     ] },
-    whyUse: { enabled: true, cards: [
-        { title: 'Save Time', desc: 'Automate product research and save hundreds of hours.' },
-        { title: 'Find Winning Products', desc: 'Data-driven insights to pick winners with confidence.' },
-        { title: 'Analyze Competition', desc: 'Stay one step ahead by tracking competitor moves.' },
-        { title: 'Improve Ads', desc: 'Generate stunning ad materials that convert.' },
-        { title: 'Increase Revenue', desc: 'Scale your store faster with proven data.' }
-    ]},
+    whyUse: { enabled: true, cards: whyCards },
     metrics: { enabled: true, stats: [
-        { value: '10M+', label: 'Products Analyzed' },
-        { value: '500K+', label: 'Reports Generated' },
-        { value: '50K+', label: 'Active Users' },
-        { value: '1M+', label: 'Saved Hours' }
+        { value: '10M+', label: metricLabels?.[0] },
+        { value: '500K+', label: metricLabels?.[1] },
+        { value: '50K+', label: metricLabels?.[2] },
+        { value: '1M+', label: metricLabels?.[3] }
     ]},
     testimonials: { enabled: true, items: [
        { name: 'Alex M.', role: 'E-commerce Owner', company: 'TrendStore', review: 'Savdolab completely changed how I find products. What used to take days now takes minutes.' },
@@ -63,16 +101,12 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
        { name: 'Jamshid', role: 'Store Manager', company: 'Uzum Seller', review: 'Amazing insights for the local market. The ad copy generator saves us so much money on copywriters.' }
     ] },
     video: { enabled: true, url: 'https://www.youtube.com/embed/dQw4w9WgXcQ' },
-    comparison: { enabled: true, manual: ['Hours of research', 'Guessing what works', 'Wasting ad spend', 'Manual competitor tracking'], savdolab: ['Instant insights', 'Data-backed decisions', 'Optimized ad scaling', 'Automated spying'] },
-    faq: { enabled: true, items: [
-        { q: 'How does it work?', a: 'Savdolab uses advanced AI and machine learning to analyze millions of data points...' },
-        { q: 'Is there a free trial?', a: 'Yes! We offer a free plan to get you started.' }
-    ]},
-    upgradeBanner: { enabled: true, text: 'Limited Time Offer: Get 50% off your first month!', btnText: 'Upgrade Now', link: '#' },
+    comparison: { enabled: true, manual: comparisonManual, savdolab: comparisonSavdolab },
+    faq: { enabled: true, items: defaultFaq },
+    upgradeBanner: { enabled: true, text: t('landing.upgradeText'), btnText: t('landing.upgradeButton'), link: '#' },
     logos: { enabled: true, items: ['Uzum', 'Yandex Market', 'Ozon', 'Wildberries', 'Shopify', 'TikTok Shop'] },
     footer: { terms: '#', privacy: '#', support: '#', contact: '#', telegram: '#' }
   };
-
   const current = config || defaultConf;
 
   const IconMap: Record<string, any> = {
@@ -84,7 +118,7 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
       {/* Logos Section */}
       {current.logos?.enabled !== false && (
         <section className="flex flex-col items-center opacity-70">
-          <p className="tracking-widest text-[10px] uppercase font-bold text-white/50 mb-6 font-mono">Trusted by Top Sellers on</p>
+          <p className="tracking-widest text-[10px] uppercase font-bold text-white/50 mb-6 font-mono">{t('landing.trustedBy')}</p>
           <div className="flex flex-wrap justify-center gap-8 md:gap-16 items-center">
              {(current.logos?.items || defaultConf.logos.items).map((logo: string, idx: number) => (
                 <div key={idx} className="text-white/60 font-medium text-lg md:text-xl tracking-tight grayscale hover:grayscale-0 hover:text-white transition-all">{logo}</div>
@@ -94,10 +128,11 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
       )}
 
       {/* Featured AI Tools */}
-      <section className="flex flex-col gap-8 w-full">
-        <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight">Feature-Rich AI Intelligence</h2>
+      <section data-scroll-section className="snap-section flex flex-col gap-8 w-full">
+        <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight">{t('landing.aiTools')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {(current.features || defaultConf.features).map((feature: any) => {
+          {(current.features || defaultConf.features).map((rawFeature: any) => {
+             const feature = localizedFeature(rawFeature);
              if (!feature.enabled) return null;
              const Icon = IconMap[feature.icon] || Sparkles;
              return (
@@ -108,12 +143,12 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
                  <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
                  <p className="text-white/60 text-sm leading-relaxed mb-6 flex-1">{feature.desc}</p>
                  <div className="text-xs text-[#89E4FF] font-medium leading-loose border-l-2 border-[#1497F3] pl-3 mb-6">
-                    {feature.highlights.split(' • ').map((h: string, i: number) => (
+                    {highlightItems(feature.highlights).map((h: string, i: number) => (
                        <div key={i}>{h}</div>
                     ))}
                  </div>
                  <button className="text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 w-full py-3 rounded-xl transition-colors">
-                   Try Now
+                   {t('landing.tryNow')}
                  </button>
                </div>
              )
@@ -126,18 +161,20 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
         <section className="flex flex-col gap-8 w-full">
            <div className="flex flex-col items-center mb-2">
              <div className="flex items-center gap-2 text-[#FF4500] bg-[#FF4500]/10 border border-[#FF4500]/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4">
-                <Flame size={14} className="animate-pulse" /> Trending Now
+                <Flame size={14} className="animate-pulse" /> {t('landing.trendingNow')}
              </div>
-             <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight">Top Products to Sell</h2>
+             <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight">{t('landing.topProducts')}</h2>
            </div>
            
            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {(current.trending.products || defaultConf.trending.products).map((p: any) => (
+              {(current.trending.products || defaultConf.trending.products).map((rawProduct: any) => {
+                const p = localizedProduct(rawProduct);
+                return (
                  <div key={p.id} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden hover:-translate-y-1 hover:shadow-[0_10px_40px_rgba(20,151,243,0.15)] transition-all group">
                     <div className="h-48 w-full relative overflow-hidden bg-black/40">
                        <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80" />
                        <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 text-xs font-bold text-white flex items-center gap-1">
-                          <Sparkles size={12} className="text-[#89E4FF]" /> Score: {p.score}
+                          <Sparkles size={12} className="text-[#89E4FF]" /> {t('common.score')}: {p.score}
                        </div>
                        <div className="absolute top-3 right-3 bg-green-500/20 backdrop-blur-md px-2 py-1 rounded border border-green-500/30 text-xs font-bold text-green-400">
                           {p.growth}
@@ -148,7 +185,8 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
                        <h4 className="text-white font-bold leading-tight line-clamp-2">{p.name}</h4>
                     </div>
                  </div>
-              ))}
+                );
+              })}
            </div>
         </section>
       )}
@@ -156,7 +194,7 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
       {/* Video Demo */}
       {current.video?.enabled && (
         <section className="flex flex-col items-center w-full max-w-[900px] mx-auto">
-           <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-8">See it in Action</h2>
+           <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-8">{t('landing.videoTitle')}</h2>
            <div className="w-full aspect-video rounded-[32px] overflow-hidden border border-white/10 shadow-2xl relative bg-black/50 group">
              {current.video.url ? (
                <iframe className="w-full h-full" src={current.video.url} title="Video Demo" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
@@ -173,40 +211,43 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
 
       {/* Why Use */}
       <section className="flex flex-col gap-8 w-full">
-         <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-2">Why Sellers Use Savdolab</h2>
+         <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-2">{t('landing.whyTitle')}</h2>
          <div className="flex flex-wrap justify-center gap-4">
-            {(current.whyUse?.cards || defaultConf.whyUse.cards).map((card: any, idx: number) => (
+            {(current.whyUse?.cards || defaultConf.whyUse.cards).map((rawCard: any, idx: number) => {
+              const card = localizedWhyCard(rawCard, idx);
+              return (
               <div key={idx} className="bg-black/30 border border-white/10 rounded-2xl px-6 py-5 max-w-[300px] flex-1 min-w-[250px]">
                  <CheckCircle2 size={24} className="text-[#1497F3] mb-4" />
                  <h4 className="text-white font-bold text-lg mb-2">{card.title}</h4>
                  <p className="text-white/60 text-sm leading-relaxed">{card.desc}</p>
               </div>
-            ))}
+              );
+            })}
          </div>
       </section>
 
       {/* Comparison */}
       {(current.comparison?.enabled !== false) && (
         <section className="flex flex-col gap-10 w-full max-w-[800px] mx-auto">
-           <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-2">The Unfair Advantage</h2>
+           <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-2">{t('landing.advantageTitle')}</h2>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-red-500/5 border border-red-500/20 rounded-[24px] p-8">
-                 <h3 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4">Manual Research</h3>
+                 <h3 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4">{t('landing.manualResearch')}</h3>
                  <ul className="flex flex-col gap-4">
-                   {(current.comparison?.manual || defaultConf.comparison.manual).map((t: string, i: number) => (
+                   {(current.comparison?.manual || defaultConf.comparison.manual).map((text: string, i: number) => (
                      <li key={i} className="flex gap-3 text-white/70 items-start">
-                        <span className="text-red-400 font-bold mt-0.5">✕</span> {t}
+                        <span className="text-red-400 font-bold mt-0.5">x</span> {comparisonManual?.[i] || text}
                      </li>
                    ))}
                  </ul>
               </div>
               <div className="bg-[#1497F3]/10 border border-[#1497F3]/30 rounded-[24px] p-8 shadow-[0_0_40px_rgba(20,151,243,0.1)] relative overflow-hidden">
                  <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles size={100} /></div>
-                 <h3 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4">Savdolab AI</h3>
+                 <h3 className="text-xl font-bold text-white mb-6 border-b border-white/10 pb-4">{t('landing.savdolabAi')}</h3>
                  <ul className="flex flex-col gap-4 relative z-10">
-                   {(current.comparison?.savdolab || defaultConf.comparison.savdolab).map((t: string, i: number) => (
+                   {(current.comparison?.savdolab || defaultConf.comparison.savdolab).map((text: string, i: number) => (
                      <li key={i} className="flex gap-3 text-white justify-start items-start">
-                        <CheckCircle2 size={18} className="text-[#1497F3] mt-0.5" /> <span className="font-semibold">{t}</span>
+                        <CheckCircle2 size={18} className="text-[#1497F3] mt-0.5" /> <span className="font-semibold">{comparisonSavdolab?.[i] || text}</span>
                      </li>
                    ))}
                  </ul>
@@ -218,23 +259,25 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
       {/* Success Metrics */}
       <section className="py-12 border-y border-white/10 w-full">
          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-[1000px] mx-auto justify-items-center">
-            {(current.metrics?.stats || defaultConf.metrics.stats).map((stat: any, idx: number) => (
+            {(current.metrics?.stats || defaultConf.metrics.stats).map((rawStat: any, idx: number) => {
+              const stat = localizedMetric(rawStat, idx);
+              return (
                <div key={idx} className="flex flex-col items-center">
                  <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white to-white/50 mb-2">{stat.value}</div>
                  <div className="text-sm font-semibold tracking-wider text-[#1497F3] uppercase">{stat.label}</div>
                </div>
-            ))}
+              );
+            })}
          </div>
       </section>
 
       {/* Testimonials */}
       {(current.testimonials?.enabled !== false) && (current.testimonials?.items?.length > 0) && (
         <section className="flex flex-col gap-8 w-full">
-           <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-4">Success Stories</h2>
+           <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-4">{t('landing.successStories')}</h2>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {current.testimonials.items.map((testi: any, idx: number) => (
                  <div key={idx} className="bg-white/5 border border-white/10 p-6 rounded-3xl">
-                    <div className="flex gap-1 mb-4 text-yellow-400">{'★'.repeat(5)}</div>
                     <p className="text-white/80 italic mb-6">"{testi.review}"</p>
                     <div className="flex items-center gap-3">
                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1497F3] to-[#89E4FF] p-0.5">
@@ -253,8 +296,8 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
 
       {/* Pricing Preview */}
       <section className="flex flex-col gap-8 w-full items-center">
-         <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-2">Simple, Transparent Pricing</h2>
-         <p className="text-white/60 text-center mb-6">Choose the perfect plan for your business scale</p>
+         <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-2">{t('landing.pricingTitle')}</h2>
+         <p className="text-white/60 text-center mb-6">{t('landing.pricingBody')}</p>
          <div className="w-full pointer-events-none scale-90 md:scale-100 origin-top">
             {/* We reuse the styling of pricing but block interactions to lead them to specific page later if needed, or allow interactions.
                 Requirement: "Pricing pulled dynamically from pricing system." */}
@@ -262,7 +305,7 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
          </div>
          {onNavigateToPricing && (
             <button onClick={onNavigateToPricing} className="mt-8 px-8 py-4 bg-[#1497F3] hover:bg-[#2081C3] text-white font-bold rounded-2xl shadow-[0_0_30px_rgba(20,151,243,0.4)] transition-all">
-               View Full Pricing Options
+               {t('landing.viewPricing')}
             </button>
          )}
       </section>
@@ -272,11 +315,11 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
          <div className="w-full max-w-[800px] mx-auto bg-gradient-to-r from-[#1497F3]/20 via-[#89E4FF]/10 to-[#1497F3]/20 border border-[#1497F3]/30 rounded-[32px] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left relative overflow-hidden">
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
             <div className="relative z-10">
-               <h3 className="text-2xl md:text-3xl font-black text-white mb-2">{current.upgradeBanner.text}</h3>
-               <p className="text-[#89E4FF] font-medium">Unlock all premium AI capabilities today.</p>
+               <h3 className="text-2xl md:text-3xl font-black text-white mb-2">{t('landing.upgradeText')}</h3>
+               <p className="text-[#89E4FF] font-medium">{t('landing.unlockPremium')}</p>
             </div>
             <button onClick={onNavigateToPricing} className="relative z-10 whitespace-nowrap px-8 py-4 bg-white text-[#0A1322] font-black rounded-full hover:scale-105 transition-transform shadow-xl">
-               {current.upgradeBanner.btnText}
+               {t('landing.upgradeButton')}
             </button>
          </div>
       )}
@@ -284,9 +327,10 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
       {/* FAQ */}
       {(current.faq?.enabled !== false) && (
          <section className="flex flex-col gap-8 w-full max-w-[800px] mx-auto mb-20">
-            <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-4">Frequently Asked Questions</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-center tracking-tight mb-4">{t('landing.faqTitle')}</h2>
             <div className="flex flex-col gap-4">
-               {(current.faq?.items || defaultConf.faq.items).map((faq: any, idx: number) => {
+               {(current.faq?.items || defaultConf.faq.items).map((rawFaq: any, idx: number) => {
+                  const faq = defaultFaq?.[idx] || rawFaq;
                   const isOpen = expandedFaq === idx;
                   return (
                      <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
@@ -308,15 +352,17 @@ export default function LandingExperience({ onNavigateToPricing }: { onNavigateT
 
       {/* Footer */}
       <footer className="w-full border-t border-white/10 pt-10 pb-8 flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-white/50">
-         <div>© {new Date().getFullYear()} Savdolab. All rights reserved.</div>
+         <div>&copy; {new Date().getFullYear()} Date corp. {t('landing.footerRights')}</div>
          <div className="flex flex-wrap justify-center gap-6">
-            <a href={current.footer?.terms || '#'} className="hover:text-white transition-colors">Terms</a>
-            <a href={current.footer?.privacy || '#'} className="hover:text-white transition-colors">Privacy</a>
-            <a href={current.footer?.support || '#'} className="hover:text-white transition-colors">Support</a>
-            <a href={current.footer?.contact || '#'} className="hover:text-white transition-colors">Contact</a>
+            <a href={current.footer?.terms || '#'} className="hover:text-white transition-colors">{t('landing.terms')}</a>
+            <a href={current.footer?.privacy || '#'} className="hover:text-white transition-colors">{t('landing.privacy')}</a>
+            <a href={current.footer?.support || '#'} className="hover:text-white transition-colors">{t('landing.support')}</a>
+            <a href={current.footer?.contact || '#'} className="hover:text-white transition-colors">{t('landing.contact')}</a>
             <a href={current.footer?.telegram || '#'} className="text-[#1497F3] hover:text-[#89E4FF] transition-colors font-medium">Telegram</a>
          </div>
       </footer>
     </div>
   );
 }
+
+

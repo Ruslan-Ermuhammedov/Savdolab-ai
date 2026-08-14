@@ -3,8 +3,10 @@ import { db } from '../../firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { Lock, User, Key, Loader2, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useI18n } from '../../i18n';
 
 export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
+  const { t } = useI18n();
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,10 +27,10 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
       if (username === expectedUser && pin === expectedPin) {
         onLogin();
       } else {
-        setError("Invalid username or PIN");
+        setError(t('admin.invalidLogin'));
       }
     } catch (err: any) {
-      setError("Login failed: " + err.message);
+      setError(t('common.error') + ': ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -49,8 +51,8 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
           </div>
         </div>
         
-        <h1 className="text-3xl font-bold text-center text-white mb-2">Admin Panel</h1>
-        <p className="text-center text-white/50 mb-8">Savdolab Management System</p>
+        <h1 className="text-3xl font-bold text-center text-white mb-2">{t('admin.loginTitle')}</h1>
+        <p className="text-center text-white/50 mb-8">Savdolab</p>
 
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center">
@@ -60,7 +62,7 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5 ml-1">Username</label>
+            <label className="block text-sm font-medium text-white/70 mb-1.5 ml-1">{t('admin.username')}</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <User size={18} className="text-white/40" />
@@ -70,14 +72,14 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 className="w-full bg-black/40 border border-white/10 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:border-[#1497F3] text-white transition-colors"
-                placeholder="Enter admin username"
+                placeholder={t('admin.username')}
                 required
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-white/70 mb-1.5 ml-1">PIN Code</label>
+            <label className="block text-sm font-medium text-white/70 mb-1.5 ml-1">PIN</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <Key size={18} className="text-white/40" />
@@ -98,7 +100,7 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
             disabled={loading}
             className="w-full mt-6 bg-[#1497F3] hover:bg-[#2081C3] text-white font-bold rounded-xl py-3.5 transition-all flex items-center justify-center shadow-[0_0_20px_rgba(20,151,243,0.3)] disabled:opacity-50"
           >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : <span className="flex items-center gap-2">Login to Platform <ArrowRight size={18} /></span>}
+            {loading ? <Loader2 className="animate-spin" size={20} /> : <span className="flex items-center gap-2">{t('admin.login')} <ArrowRight size={18} /></span>}
           </button>
         </form>
       </motion.div>

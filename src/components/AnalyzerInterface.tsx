@@ -12,6 +12,7 @@ import AdAnalyzerView from './AnalyzerAdAnalyzer';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc, collection, addDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { Share2 } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 import LandingExperience from './LandingExperience';
 
@@ -29,6 +30,7 @@ interface AnalyzerProps {
 }
 
 export default function AnalyzerInterface({ initialQuery = '', initialMode = 'winning-product', sharedId = null, onAnalysisComplete, user, onNavigateToPricing, onShowToast, onRequireAuth, language = 'uz' }: AnalyzerProps) {
+  const { t } = useI18n();
   const [prompt, setPrompt] = useState(initialQuery);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [image, setImage] = useState<File | null>(null);
@@ -46,6 +48,8 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
   const fileInputRef = useRef<HTMLInputElement>(null);
   const promptInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const snapLockRef = useRef(0);
 
   const [isPromptSticky, setIsPromptSticky] = useState(false);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -69,11 +73,11 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                 setActiveMode(data.type as any);
                 setSubmittedPrompt(data.title);
              } else {
-                setError("Hisobot topilmadi yoki o'chirilgan.");
+                setError(t('analyzer.sharedNotFound'));
              }
           } catch(e) {
              console.error("Error loading shared ID", e);
-             setError("Xatolik yuz berdi");
+             setError(t('analyzer.genericError'));
           } finally {
              setLoading(false);
           }
@@ -104,11 +108,11 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
 
   const [loadingStepIdx, setLoadingStepIdx] = useState(0);
   const loadingSteps = [
-    "So'rov qabul qilindi...",
-    "Kiritilgan ma'lumotlar analiz qilinmoqda...",
-    "Internetdan global trendlar qidirilmoqda...",
-    "Natijalar solishtirilmoqda...",
-    "Professional hisobot tayyorlanmoqda..."
+    t('analyzer.requestAccepted'),
+    t('analyzer.analyzingInput'),
+    t('analyzer.searchingTrends'),
+    t('analyzer.comparingResults'),
+    t('analyzer.preparingReport')
   ];
 
   useEffect(() => {
@@ -162,12 +166,8 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
   const performAnalysis = async (queryText: string, imgFile: File | null = null, modeToUse: AppMode) => {
     // Determine the active user: either from props (which can trail slightly due to render cycles) or directly from auth.currentUser
     const currentUser = userRef.current || auth.currentUser;
-    if (!currentUser) {
-       if (onRequireAuth) onRequireAuth(() => performAnalysis(queryText, imgFile, modeToUse));
-       return;
-    }
 
-    setSubmittedPrompt(queryText || "Rasm orqali qidiruv");
+    setSubmittedPrompt(queryText || t('analyzer.imageSearch'));
     setLoading(true);
     setError(null);
     setResult(null);
@@ -208,7 +208,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
           
           if (!hasAccess) {
              setLoading(false);
-             setError("Bu xususiyat joriy tarifingizda mavjud emas. Iltimos, tarifingizni oshiring.");
+             setError(t('analyzer.planFeatureMissing'));
              return;
           }
 
@@ -225,7 +225,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     }
 
     try {
-      const payload: any = { text: queryText || "Ushbu mahsulotni analiz qiling", lang: language.toUpperCase(), mode: modeToUse };
+      const payload: any = { text: queryText || t('analyzer.defaultImagePrompt'), lang: language.toUpperCase(), mode: modeToUse };
       
       if (imgFile) {
         const base64Data = await fileToBase64(imgFile);
@@ -251,7 +251,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze product');
+        throw new Error(errorData.error || t('analyzer.failedAnalyze'));
       }
 
       const data = await response.json();
@@ -277,11 +277,11 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
       }
 
       if (onAnalysisComplete) {
-        onAnalysisComplete(queryText || "Image Search", modeToUse);
+        onAnalysisComplete(queryText || t('analyzer.imageSearch'), modeToUse);
       }
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        setError("Tahlil bekor qilindi. Limit olib qolinmadi.");
+        setError(t('analyzer.cancelled'));
       } else {
         setError(err.message);
       }
@@ -355,13 +355,9 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     if (!result?.data) return;
     
     const currentUser = userRef.current || auth.currentUser;
-    if (!currentUser) {
-       if (onRequireAuth) onRequireAuth(() => handleDownloadCSV());
-       return;
-    }
     
     // Export Report cost is 4 credits
-    if (currentUser.uid) {
+    if (currentUser?.uid) {
       try {
         const uRef = doc(db, 'users', currentUser.uid);
         const userSnap = await getDoc(uRef);
@@ -371,7 +367,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
           const planSnap = await getDoc(doc(db, 'plans', planId));
           const planFeatures = planSnap.exists() ? planSnap.data().features : [];
           if (planSnap.exists() && !planFeatures.includes('Export Reports')) {
-             setError("Eksport qilish formati ushbu tarifda mavjud emas.");
+             setError(t('analyzer.exportUnavailable'));
              return;
           }
 
@@ -381,7 +377,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
              setShowUpgradeModal(true);
              return;
           }
-          await updateDoc(userRef, {
+          await updateDoc(uRef, {
              used_credits: usedC + 4,
              updatedAt: Date.now()
           });
@@ -418,7 +414,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     if (!result) return;
     
     if (!userRef.current?.uid) {
-       if (onRequireAuth) onRequireAuth(() => handleSaveReport());
+       onShowToast(t('analyzer.saveRequiresLogin'));
        return;
     }
 
@@ -436,7 +432,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
         }
 
         if (maxStorage === 0) {
-            onShowToast("Free tarifda saqlash imkoniyati yo'q");
+            onShowToast(t('analyzer.freeCannotSave'));
             return;
         }
 
@@ -446,7 +442,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
         const q = query(collection(db, 'saved_reports'), where('userId', '==', currentUser.uid));
         const currentSnap = await getDocs(q);
         if (currentSnap.size >= maxStorage) {
-            onShowToast(`Tarif limingiz to'ldi (${maxStorage} ta)`);
+            onShowToast(t('analyzer.storageLimit', { count: maxStorage }));
             return;
         }
 
@@ -455,34 +451,38 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
         await setDoc(newRef, {
             userId: currentUser.uid,
             type: result.mode,
-            title: submittedPrompt || 'Tahlil Natijasi',
+            title: submittedPrompt || t('savedReports.reportFallback'),
             data: result.data,
             createdAt: Date.now()
         });
 
-        onShowToast("Hisobot saqlandi!");
+        onShowToast(t('analyzer.reportSaved'));
     } catch(err) {
         console.error(err);
-        onShowToast("Xatolik yuz berdi");
+        onShowToast(t('common.error'));
     }
   };
 
   const handleShareReport = async () => {
     if (!result) return;
+    if (!userRef.current?.uid && !auth.currentUser?.uid) {
+        onShowToast(t('analyzer.shareRequiresLogin'));
+        return;
+    }
     try {
         const newRef = doc(collection(db, 'public_reports'));
         await setDoc(newRef, {
             type: result.mode,
-            title: submittedPrompt || 'Tahlil Natijasi',
+            title: submittedPrompt || t('savedReports.reportFallback'),
             data: result.data,
             createdAt: Date.now()
         });
         const shareLink = `${window.location.origin}/?shared=${newRef.id}`;
         navigator.clipboard.writeText(shareLink);
-        onShowToast("Havola nusxalandi! Do'stlaringiz bilan ulashing.");
+        onShowToast(t('analyzer.shareCopied'));
     } catch(err) {
         console.error(err);
-        onShowToast("Ulashishda xatolik yuz berdi");
+        onShowToast(t('analyzer.shareError'));
     }
   };
 
@@ -491,12 +491,8 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     if (!element) return;
     
     const currentUser = userRef.current || auth.currentUser;
-    if (!currentUser) {
-       if (onRequireAuth) onRequireAuth(() => handleDownloadPDF());
-       return;
-    }
 
-    if (currentUser.uid) {
+    if (currentUser?.uid) {
       try {
         const uRef = doc(db, 'users', currentUser.uid);
         const userSnap = await getDoc(uRef);
@@ -506,7 +502,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
           const planSnap = await getDoc(doc(db, 'plans', planId));
           const planFeatures = planSnap.exists() ? planSnap.data().features : [];
           if (planSnap.exists() && !planFeatures.includes('Export Reports')) {
-             setError("Eksport qilish formati ushbu tarifda mavjud emas.");
+             setError(t('analyzer.exportUnavailable'));
              return;
           }
 
@@ -533,7 +529,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     }
 
     try {
-      onShowToast("PDF yuklanmoqda...");
+      onShowToast(t('analyzer.pdfLoading'));
       // Force non-oklab colors for capture
       element.style.setProperty('--color-indigo-600', '#4f46e5');
       element.style.setProperty('--color-blue-500', '#3b82f6');
@@ -583,6 +579,58 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
 
   const isChatMode = loading || result != null || error != null;
 
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || isChatMode) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) < 18 || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [data-no-scroll-snap]')) return;
+
+      const now = Date.now();
+      if (now < snapLockRef.current) {
+        event.preventDefault();
+        return;
+      }
+
+      const sections: HTMLElement[] = Array.from(container.querySelectorAll('[data-scroll-section]'))
+        .filter((section): section is HTMLElement => section instanceof HTMLElement)
+        .filter(section => section.offsetParent !== null);
+      if (sections.length < 2) return;
+
+      const direction = event.deltaY > 0 ? 1 : -1;
+      const currentTop = container.scrollTop;
+      const snapTolerance = 24;
+      const firstSection = sections[0];
+      const secondSection = sections[1];
+      if (!firstSection || !secondSection) return;
+
+      const secondSectionTop = secondSection.offsetTop;
+      const snapBoundary = secondSectionTop + secondSection.offsetHeight * 0.75;
+      if (currentTop > snapBoundary) return;
+
+      const targetSection = direction > 0 && currentTop < secondSectionTop - snapTolerance
+        ? secondSection
+        : direction < 0 && currentTop <= snapBoundary && currentTop > firstSection.offsetTop + snapTolerance
+          ? firstSection
+          : null;
+
+      if (!targetSection) return;
+
+      event.preventDefault();
+      snapLockRef.current = now + 680;
+      container.scrollTo({
+        top: targetSection.offsetTop,
+        behavior: 'smooth',
+      });
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [isChatMode]);
+
   const renderInputBox = () => (
     <div className="relative w-full max-w-[800px] mx-auto z-50">
       
@@ -590,10 +638,10 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
       {!isChatMode && (
         <div className="flex flex-wrap justify-center gap-2 mb-8">
           {[
-            { id: 'winning-product', label: 'Winning Product', icon: Sparkles },
-            { id: 'trending-products', label: 'Trending', icon: Flame },
-            { id: 'competitor-spy', label: 'Competitor Spy', icon: Search },
-            { id: 'ad-analyzer', label: 'Ad Analyzer', icon: Megaphone }
+            { id: 'winning-product', label: t('analyzer.modeLabels.winning-product'), icon: Sparkles },
+            { id: 'trending-products', label: t('analyzer.modeLabels.trending-products'), icon: Flame },
+            { id: 'competitor-spy', label: t('analyzer.modeLabels.competitor-spy'), icon: Search },
+            { id: 'ad-analyzer', label: t('analyzer.modeLabels.ad-analyzer'), icon: Megaphone }
           ].map(mode => (
             <button
               key={mode.id}
@@ -626,7 +674,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
               <div 
                 className="flex items-center bg-white/10 border border-white/20 px-2.5 py-1.5 md:px-3 md:py-1.5 rounded-full mr-2 md:mr-4 cursor-pointer hover:bg-white/20 transition-colors shadow-sm"
                 onClick={() => fileInputRef.current?.click()}
-                title="Upload Image"
+                title={t('analyzer.uploadedAlt')}
               >
                 <div className="w-3.5 h-3.5 md:w-4 md:h-4 bg-white/20 rounded-full flex items-center justify-center mr-1 md:mr-1.5 backdrop-blur-md">
                    <Plus size={10} className="text-white" />
@@ -645,12 +693,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                 }}
                 onFocus={() => setShowAutoSuggest(true)}
                 onBlur={() => setTimeout(() => setShowAutoSuggest(false), 200)}
-                placeholder={
-                  activeMode === 'winning-product' ? "Elektron termos yoki mahsulot rasmi..." :
-                  activeMode === 'trending-products' ? "Masalan: Uy jihozlari, Kosmetika..." :
-                  activeMode === 'competitor-spy' ? "Do'kon linki yoki brend nomi..." :
-                  "Reklama matni, rasmi..."
-                }
+                placeholder={t(`analyzer.placeholders.${activeMode}`)}
                 className="flex-1 min-w-[50px] md:min-w-0 bg-transparent text-white placeholder-white/50 focus:outline-none text-sm md:text-[17px] overflow-hidden text-ellipsis whitespace-nowrap"
               />
 
@@ -658,7 +701,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
 
               {imagePreview && (
                  <div className="mr-2.5 md:mr-3 relative w-[32px] h-[32px] md:w-[42px] md:h-[42px] rounded-[10px] md:rounded-xl overflow-hidden border-2 border-[#1497F3] group/img shadow-md">
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={imagePreview} alt={t('analyzer.uploadedAlt')} className="w-full h-full object-cover" />
                     <button type="button" onClick={handleRemoveImage} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
                       <span className="text-white text-[10px] md:text-[12px] font-bold">✕</span>
                     </button>
@@ -714,11 +757,11 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
          </div>
       </div>
 
-      <div className={`w-full mx-auto px-4 md:pl-[10px] md:pr-[20px] flex flex-col items-center justify-start h-full overflow-y-auto pb-40 transition-all duration-500`}>
+      <div ref={scrollContainerRef} className={`w-full mx-auto px-4 md:pl-[10px] md:pr-[20px] flex flex-col items-center justify-start h-full overflow-y-auto pb-40 transition-all duration-500 ${!isChatMode ? 'snap-scroll-container' : ''}`}>
         
         {!isChatMode ? (
           <>
-            <div className="flex flex-col w-full items-center mt-4 md:mt-[30px] mb-8 md:mb-[70px]">
+            <div data-scroll-section className="snap-section flex flex-col w-full items-center mt-4 md:mt-[30px] mb-8 md:mb-[70px]">
               <motion.div 
                 ref={heroRef}
                 initial={{ opacity: 0, scale: 0.98, y: 15 }}
@@ -735,7 +778,9 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                     <img src={vibeSellingLogo} alt="Vibe Selling MVP" className="h-10 md:h-[72px] w-auto drop-shadow-2xl mx-auto" />
                   </div>
                   <h1 className="text-white font-[700] text-3xl md:text-[36px] leading-[120%] max-w-[700px] mb-6 md:mb-10 tracking-tight">
-                     bugun qanday g'olib<br/>mahsulotlar haqida gaplashamiz
+                     {t('analyzer.todayQuestion').split('\n').map((line, index) => (
+                       <React.Fragment key={line}>{index > 0 && <br />}{line}</React.Fragment>
+                     ))}
                   </h1>
                   <div className="w-full relative px-2">
                     {renderInputBox()}
@@ -761,7 +806,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                   <div className="bg-[#1C2333] border border-white/10 px-5 py-4 rounded-[20px] rounded-tr-[4px] max-w-[80%] flex flex-col gap-3 shadow-lg">
                      {imagePreview && (
                         <div className="w-[120px] h-[120px] rounded-xl overflow-hidden border border-white/10">
-                           <img src={imagePreview} alt="Uploaded text reference" className="w-full h-full object-cover" />
+                           <img src={imagePreview} alt={t('analyzer.uploadedAlt')} className="w-full h-full object-cover" />
                         </div>
                      )}
                      <p className="text-[#E2E8F0] text-[15px] leading-relaxed">{submittedPrompt}</p>
@@ -769,7 +814,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                      {/* Display Active Mode chip */}
                      <div className="flex items-center gap-1.5 mt-2 bg-black/30 border border-white/5 w-fit px-2.5 py-1 rounded-md">
                         <Activity size={10} className="text-[#89E4FF]" />
-                        <span className="text-[10px] uppercase tracking-wide text-white/50">{activeMode.replace('-', ' ')}</span>
+                        <span className="text-[10px] uppercase tracking-wide text-white/50">{t(`analyzer.modeLabels.${activeMode}`)}</span>
                      </div>
                   </div>
                 </motion.div>
@@ -821,7 +866,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                           <div className="absolute bottom-6 right-6 flex items-center gap-3 bg-[#0A0D12]/80 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 shadow-lg z-20">
                             <Loader2 size={16} className="text-[#1497F3] animate-spin" />
                             <span className="text-[#89E4FF] text-sm font-medium animate-pulse">{loadingSteps[loadingStepIdx]}</span>
-                            <button onClick={handleAbort} className="w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center transition-colors ml-2" title="Bekor qilish">
+                            <button onClick={handleAbort} className="w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center transition-colors ml-2" title={t('common.cancel')}>
                               <X size={12} className="text-red-400" />
                             </button>
                           </div>
@@ -841,22 +886,22 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                         
                         <div className="flex justify-end px-2 gap-2" data-html2canvas-ignore="true">
                           <button onClick={handleShareReport} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-[#1497F3] rounded-lg text-sm font-medium transition-colors border border-[#1497F3]/20 shadow-[0_0_15px_rgba(20,151,243,0.1)]">
-                            <Share2 size={14} /> Share
+                            <Share2 size={14} /> {t('analyzer.share')}
                           </button>
                           <button onClick={handleSaveReport} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors border border-white/10">
-                            <Bookmark size={14} /> Save Report
+                            <Bookmark size={14} /> {t('analyzer.saveReport')}
                           </button>
                           <div className="flex relative">
                              <button onClick={() => setDownloadMenuOpen(!downloadMenuOpen)} className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors border border-white/10">
-                               <Download size={14} /> Download Report <ChevronDown size={14} className="opacity-70" />
+                               <Download size={14} /> {t('analyzer.downloadReport')} <ChevronDown size={14} className="opacity-70" />
                              </button>
                              {downloadMenuOpen && (
                                <div className="absolute right-0 top-[110%] w-40 bg-[#1A2333] border border-white/10 rounded-xl shadow-xl overflow-hidden z-50 flex flex-col">
                                  <button onClick={() => { handleDownloadPDF(); setDownloadMenuOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-white/5 text-sm text-white/90 border-b border-white/5 flex items-center gap-2">
-                                   <FileText size={14} /> Download PDF
+                                   <FileText size={14} /> {t('analyzer.downloadPdf')}
                                  </button>
                                  <button onClick={() => { handleDownloadCSV(); setDownloadMenuOpen(false); }} className="w-full text-left px-4 py-3 hover:bg-white/5 text-sm text-white/90 flex items-center gap-2">
-                                   <Download size={14} /> Download CSV
+                                   <Download size={14} /> {t('analyzer.downloadCsv')}
                                  </button>
                                </div>
                              )}
@@ -872,7 +917,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                         {result.sources && result.sources.length > 0 && (
                           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="bg-[#111827] border border-white/10 rounded-[20px] p-5 text-left shadow-xl mt-4">
                             <h3 className="text-[11px] font-semibold text-white/50 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <Search size={14} /> Web qidiruv natijalari
+                              <Search size={14} /> {t('analyzer.webSources')}
                             </h3>
                             <div className="flex flex-wrap gap-2">
                               {result.sources.map((url, i) => {
@@ -925,9 +970,7 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                      activeMode === 'competitor-spy' ? <Search size={14} className="text-[#1497F3]" /> :
                      <Megaphone size={14} className="text-[#1497F3]" />}
                     <span className="text-white text-xs font-semibold">
-                      {activeMode === 'winning-product' ? 'Winning Product' :
-                       activeMode === 'trending-products' ? 'Trending' :
-                       activeMode === 'competitor-spy' ? 'Competitor Spy' : 'Ad Analyzer'}
+                      {t(`analyzer.modeLabels.${activeMode}`)}
                     </span>
                   </div>
 
@@ -937,13 +980,13 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                     onChange={e => {
                       setPrompt(e.target.value);
                     }}
-                    placeholder="Savolingizni bering..."
+                    placeholder={t('analyzer.promptPlaceholder')}
                     className="flex-1 min-w-[50px] bg-transparent text-white placeholder-white/50 focus:outline-none text-sm md:text-base pr-2"
                   />
 
                   {imagePreview && (
                      <div className="mr-3 relative w-[32px] h-[32px] rounded-[10px] overflow-hidden border-2 border-[#1497F3] shrink-0 group/img shadow-md">
-                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                        <img src={imagePreview} alt={t('analyzer.uploadedAlt')} className="w-full h-full object-cover" />
                         <button type="button" onClick={handleRemoveImage} className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
                           <span className="text-white text-[10px] font-bold">✕</span>
                         </button>
@@ -953,14 +996,14 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                   <div 
                     className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors mr-2 cursor-pointer shrink-0"
                     onClick={() => fileInputRef.current?.click()}
-                    title="Upload Image"
+                    title={t('analyzer.uploadedAlt')}
                   >
                     <Plus size={20} className="text-white/70" />
                   </div>
 
                   <div className="hidden md:flex flex-col items-end justify-center mr-4 shrink-0">
-                    <span className="text-white/50 text-[10px] uppercase font-bold tracking-wider leading-none mb-1">Balance</span>
-                    <span className="text-white font-bold text-sm leading-none">{user ? Math.max((user.total_credits || 0) - (user.used_credits || 0), 0) : 0} <span className="text-[#1497F3]">CR</span></span>
+                    <span className="text-white/50 text-[10px] uppercase font-bold tracking-wider leading-none mb-1">{t('common.balance')}</span>
+                    <span className="text-white font-bold text-sm leading-none">{user ? Math.max((user.total_credits || 0) - (user.used_credits || 0), 0) : t('common.guest')} {user && <span className="text-[#1497F3]">CR</span>}</span>
                   </div>
 
                   <motion.button 
@@ -992,15 +1035,15 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
                <div className="absolute top-0 right-0 p-4 opacity-10 text-red-500 pointer-events-none">
                   <Flame size={64} />
                </div>
-               <h3 className="text-xl font-bold text-white mb-2 relative z-10">Hisobingizdagi kreditlar tugadi</h3>
-               <p className="text-white/60 text-sm mb-6 relative z-10">Afsuski, bu tahlilni amalga oshirish uchun yetarli kredit mavjud emas.</p>
+               <h3 className="text-xl font-bold text-white mb-2 relative z-10">{t('analyzer.insufficientCreditsTitle')}</h3>
+               <p className="text-white/60 text-sm mb-6 relative z-10">{t('analyzer.insufficientCreditsBody')}</p>
                
                <div className="flex flex-col gap-3 relative z-10">
                  <button onClick={() => { setShowUpgradeModal(false); onNavigateToPricing && onNavigateToPricing(); }} className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#1497F3] to-[#7B4DFF] text-white font-semibold">
-                    Kredit sotib olish
+                    {t('analyzer.buyCredits')}
                  </button>
                  <button onClick={() => { setShowUpgradeModal(false); onNavigateToPricing && onNavigateToPricing(); }} className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium border border-white/10">
-                    Tariflarni ko'rish
+                    {t('analyzer.viewPlans')}
                  </button>
                </div>
             </motion.div>
@@ -1011,3 +1054,4 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
     </div>
   );
 }
+

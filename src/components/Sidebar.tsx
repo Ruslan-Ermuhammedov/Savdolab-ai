@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import savdolabLogo from '../Group 2 (3) 4.png';
 import { HistoryItem } from '../App';
 import { logOut } from '../firebase';
+import { useI18n } from '../i18n';
 
 interface SidebarProps {
   onNewTask: () => void;
@@ -19,11 +20,12 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPricing, onOpenSavedReports, onShowToast, history, user, language, onLanguageChange }: SidebarProps) {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleComingSoon = (e: React.MouseEvent) => {
     e.preventDefault();
-    onShowToast("Tez kunda!");
+    onShowToast(t('common.comingSoon'));
     setIsOpen(false);
   };
 
@@ -48,42 +50,45 @@ export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPr
         <button onClick={handleNewTaskClick} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
           <Plus size={16} className="opacity-70" />
           <span className="flex-1 text-left flex justify-between items-center">
-            New task
+            {t('sidebar.newTask')}
             <span className="text-[10px] text-white/30 hidden md:block border border-white/10 px-1.5 rounded bg-black/20">⌘N</span>
           </span>
         </button>
-        <button onClick={() => { onShowToast("Eski chatlarni izlash..."); window.dispatchEvent(new CustomEvent('focusPrompt')); setIsOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
+        <button onClick={() => { onShowToast(t('sidebar.searchToast')); window.dispatchEvent(new CustomEvent('focusPrompt')); setIsOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
           <Search size={16} className="opacity-70" />
           <span className="flex-1 text-left flex justify-between items-center">
-            Search
+            {t('sidebar.search')}
             <span className="text-[10px] text-white/30 hidden md:block border border-white/10 px-1.5 rounded bg-black/20">⌘K</span>
           </span>
         </button>
-        <button onClick={() => { onShowToast("Fokus markazi: Trendlar, Narxlar, Raqobatchilar"); setIsOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
-          <Layers size={16} className="opacity-70" />
-          <span className="flex-1 text-left">Skills</span>
-        </button>
-        <button onClick={handleComingSoon} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
-          <FileText size={16} className="opacity-70" />
-          <span className="flex-1 text-left">Files</span>
-        </button>
-        <button onClick={handleComingSoon} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
-          <BrainCircuit size={16} className="opacity-70" />
-          <span className="flex-1 text-left">Memory</span>
-        </button>
-        <button onClick={() => { onOpenSavedReports(); setIsOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
-          <Bookmark size={16} className="opacity-70" />
-          <span className="flex-1 text-left">Saved Reports</span>
-        </button>
+        {/*
+          Bu bo'limlar hozircha sayt sidebarida ko'rinmaydi.
+          <button onClick={() => { onShowToast(t('sidebar.focusToast')); setIsOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
+            <Layers size={16} className="opacity-70" />
+            <span className="flex-1 text-left">{t('sidebar.skills')}</span>
+          </button>
+          <button onClick={handleComingSoon} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
+            <FileText size={16} className="opacity-70" />
+            <span className="flex-1 text-left">{t('sidebar.files')}</span>
+          </button>
+          <button onClick={handleComingSoon} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
+            <BrainCircuit size={16} className="opacity-70" />
+            <span className="flex-1 text-left">{t('sidebar.memory')}</span>
+          </button>
+          <button onClick={() => { onOpenSavedReports(); setIsOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
+            <Bookmark size={16} className="opacity-70" />
+            <span className="flex-1 text-left">{t('sidebar.savedReports')}</span>
+          </button>
+        */}
         <button onClick={() => { onOpenPricing(); setIsOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-white/65 hover:text-white/95 rounded-xl text-sm font-medium transition-colors hover:bg-white/5">
           <CreditCard size={16} className="opacity-70" />
-          <span className="flex-1 text-left">Pricing</span>
+          <span className="flex-1 text-left">{t('sidebar.pricing')}</span>
         </button>
       </div>
       
       <div className="mt-8 mb-2 px-7 flex items-center gap-2">
          <Clock size={12} className="text-white/40" />
-         <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">Recent Analysis</span>
+         <span className="text-[11px] font-semibold text-white/40 uppercase tracking-wider">{t('sidebar.recentAnalysis')}</span>
       </div>
       <div className="px-7 space-y-1.5 flex flex-col items-stretch">
         {history.length > 0 ? history.map((item) => (
@@ -92,50 +97,51 @@ export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPr
                 <FileText size={12} className="text-blue-400 opacity-80" />
               </div>
               <div className="flex-1 overflow-hidden">
-                <p className="text-[13px] text-white/80 font-medium truncate">{item.query || 'Image Search'}</p>
+                <p className="text-[13px] text-white/80 font-medium truncate">{item.query || t('analyzer.imageSearch')}</p>
                 <div className="flex gap-2 text-[10px]">
-                  <span className="text-white/40 truncate">{item.mode.replace('-', ' ')}</span>
+                  <span className="text-white/40 truncate">{t(`analyzer.modeLabels.${item.mode}`)}</span>
                   <span className="text-white/30">•</span>
                   <span className="text-white/40 whitespace-nowrap">{item.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                 </div>
               </div>
           </button>
         )) : (
-          <div className="text-[11px] text-white/30 px-2 italic">Nothing recently analyzed.</div>
+          <div className="text-[11px] text-white/30 px-2 italic">{t('sidebar.nothingRecent')}</div>
         )}
       </div>
 
       <div className="mt-8 mb-2 px-7 text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-        Templates
+        {t('sidebar.templates')}
       </div>
       <div className="px-7 space-y-1.5 flex flex-col items-stretch">
-        <button onClick={() => handleTaskClick("Elektron termos sotuvlari qanday?", "winning-product")} className="flex items-center gap-2 p-2 rounded-xl border border-transparent hover:bg-white/5 transition-colors text-left group">
+        <button onClick={() => handleTaskClick(t('sidebar.templatePrompt'), "winning-product")} className="flex items-center gap-2 p-2 rounded-xl border border-transparent hover:bg-white/5 transition-colors text-left group">
             <div className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-white/20">
               <FileText size={12} className="text-white/60" />
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-[13px] text-white/80 font-medium truncate">Elektron termos haqida...</p>
-              <p className="text-[10px] text-white/40">Template</p>
+              <p className="text-[13px] text-white/80 font-medium truncate">{t('sidebar.templateProduct')}</p>
+              <p className="text-[10px] text-white/40">{t('sidebar.templates')}</p>
             </div>
         </button>
       </div>
 
-      <div className="mt-6 px-7 mb-2 text-[11px] font-semibold text-white/40 uppercase tracking-wider">
-        Language
-      </div>
-      <div className="px-4 flex gap-1">
-         {['uz', 'ru', 'en'].map(lang => (
-           <button 
-             key={lang}
-             onClick={() => onLanguageChange(lang as any)}
-             className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold uppercase transition-colors ${language === lang ? 'bg-[#1497F3] text-white' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white/80'}`}
-           >
-             {lang}
-           </button>
-         ))}
-      </div>
+      <div className="sticky bottom-0 z-20 mt-auto bg-[#0A0D12] border-t border-white/5 px-4 pt-4 pb-4 shadow-[0_-16px_30px_rgba(3,6,11,0.85)]">
+        <div className="px-3 mb-2 text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+          {t('sidebar.language')}
+        </div>
+        <div className="flex gap-1">
+           {['uz', 'ru', 'en'].map(lang => (
+             <button 
+               key={lang}
+               onClick={() => onLanguageChange(lang as any)}
+               className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-semibold uppercase transition-colors ${language === lang ? 'bg-[#1497F3] text-white' : 'bg-transparent text-white/40 hover:bg-white/5 hover:text-white/80'}`}
+             >
+               {lang}
+             </button>
+           ))}
+        </div>
 
-      <div className="p-4 mt-auto">
+        <div className="pt-3">
         {user ? (
           <div className="flex items-center justify-between text-white/65 hover:text-white/95 px-4 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors font-medium border border-white/5 group cursor-pointer" onClick={() => { onOpenProfile(); setIsOpen(false); }}>
               <div className="flex items-center gap-3 overflow-hidden">
@@ -143,7 +149,7 @@ export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPr
                      {user.photoURL ? <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" /> : user.displayName?.[0] || 'U'}
                   </div>
                   <div className="flex flex-col overflow-hidden max-w-[120px]">
-                    <span className="text-sm truncate leading-tight text-white/90">{user.displayName || 'User'}</span>
+                    <span className="text-sm truncate leading-tight text-white/90">{user.displayName || t('sidebar.user')}</span>
                     <span className="text-[10px] truncate text-white/40">{user.email}</span>
                   </div>
               </div>
@@ -151,13 +157,16 @@ export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPr
                 <LogOut size={16} />
               </button>
           </div>
-        ) : (
+        ) : null}
+        {/*
+          Login hozircha o'chirilgan. Kerak bo'lsa qayta yoqish uchun shu blokni qaytaramiz.
           <div className="flex flex-col gap-2">
             <button onClick={() => { onOpenProfile(); setIsOpen(false); }} className="w-full bg-[#1497F3] hover:bg-[#1497F3]/90 text-white px-4 py-2.5 rounded-xl font-bold transition-colors text-sm shadow-[0_0_15px_rgba(20,151,243,0.3)]">
-              Tizimga kirish
+              {t('sidebar.login')}
             </button>
           </div>
-        )}
+        */}
+        </div>
       </div>
     </>
   );
@@ -204,3 +213,4 @@ export default function Sidebar({ onNewTask, onOpenTask, onOpenProfile, onOpenPr
     </>
   );
 }
+

@@ -16,6 +16,59 @@ body {
   background-attachment: fixed;
 }
 
+html,
+body,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #006edc #03060B;
+}
+
+::-webkit-scrollbar {
+  width: 1px;
+  height: 1px;
+}
+
+::-webkit-scrollbar-track {
+  background: #03060B;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #0B5CAD;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0E74D9;
+}
+
+::-webkit-scrollbar-corner,
+::-webkit-scrollbar-button {
+  background: #03060B;
+  width: 0;
+  height: 0;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #0B5CAD #03060B;
+}
+
+.snap-scroll-container {
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  scroll-padding-top: 24px;
+}
+
+.snap-section {
+  scroll-margin-top: 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snap-scroll-container {
+    scroll-behavior: auto;
+  }
+}
+
 /* Custom Utilities */
 @property --angle {
   syntax: '<angle>';

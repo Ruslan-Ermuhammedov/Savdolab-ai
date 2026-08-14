@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Check, X, Shield, Users, Building, Zap, Rocket, Award } from 'lucide-react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, collection, getDocs, updateDoc, setDoc } from 'firebase/firestore';
+import { useI18n } from '../i18n';
 
 interface PricingProps {
   user: any;
@@ -13,6 +14,7 @@ interface PricingProps {
 }
 
 export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHeader = false, onRequireAuth }: PricingProps) {
+  const { t, get } = useI18n();
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<any[]>([]);
 
@@ -130,7 +132,7 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
        }
     } catch (e: any) {
        console.error(e);
-       onShowToast("Xatolik: balance tekshirib bo'lmadi");
+       onShowToast(t('pricing.balanceError'));
     } finally {
        setLoading(false);
     }
@@ -163,11 +165,11 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
              timestamp: new Date()
          });
 
-         onShowToast(`${p.name} tarifi faollashtirildi!`);
+         onShowToast(t('pricing.purchaseSuccess', { plan: p.name }));
          setModalState({ type: 'none' });
      } catch (e: any) {
          console.error(e);
-         onShowToast("Xaridda xatolik yuz berdi");
+         onShowToast(t('pricing.purchaseError'));
      } finally {
          setLoading(false);
      }
@@ -184,8 +186,31 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
     'Priority Support'
   ];
 
+  const featureKeys: Record<string, string> = {
+    'Winning Product Finder': 'winningProductFinder',
+    'Trend Hunter': 'trendHunter',
+    'Competitor Spy': 'competitorSpy',
+    'Ad Analyzer': 'adAnalyzer',
+    'Export Reports': 'exportReports',
+    'Saved Reports': 'savedReports',
+    'Team Access': 'teamAccess',
+    'Team Members': 'teamMembers',
+    'Shared Reports': 'sharedReports',
+    'Priority Queue': 'priorityQueue',
+    'Priority Support': 'prioritySupport',
+    'White Label Reports': 'whiteLabelReports',
+    'Dedicated Support': 'dedicatedSupport',
+    'Unlimited Team Members': 'unlimitedTeamMembers',
+    'Advanced Analytics': 'advancedAnalytics',
+  };
+
+  const featureLabel = (feature: string) => {
+    const key = featureKeys[feature];
+    return key ? t(`pricing.features.${key}`) : feature;
+  };
+
   if (loading) {
-     return <div className="flex-1 flex items-center justify-center bg-[#000000] text-white">Loading...</div>;
+     return <div className="flex-1 flex items-center justify-center bg-[#000000] text-white">{t('common.loading')}</div>;
   }
 
   return (
@@ -194,8 +219,8 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
       <div className="max-w-7xl mx-auto w-full">
          {!hideHeader && (
            <div className="text-center mb-16 mt-8">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Savdo biznesingiz uchun <span className="text-[#1497F3]">AI narxlar</span></h1>
-              <p className="text-white/50 text-lg max-w-2xl mx-auto">Hech qanday maxfiy to'lovlarsiz shaffof xarajatlar. Maqsadingizga mos keladigan tarifni tanlang.</p>
+              <h1 className="text-4xl md:text-5xl font-bold mb-4">{t('pricing.title')}</h1>
+              <p className="text-white/50 text-lg max-w-2xl mx-auto">{t('pricing.description')}</p>
            </div>
          )}
 
@@ -211,7 +236,7 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
                 >
                     {plan.popular && (
                         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#1497F3] text-white px-4 py-1 rounded-full text-xs font-bold tracking-wider">
-                            EN KO'P TANLANGAN
+                            {t('pricing.popular')}
                         </div>
                     )}
                     
@@ -227,11 +252,11 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
                             <span className="text-lg mt-1 mr-1 text-white/50">$</span>
                             {plan.price}
                         </span>
-                        <span className="text-white/40 text-sm">/ oy</span>
+                        <span className="text-white/40 text-sm">{t('pricing.perMonth')}</span>
                     </div>
                     
                     <div className="bg-black/30 rounded-xl p-3 mb-6 border border-white/5 flex items-center justify-between">
-                        <span className="text-sm font-medium text-white/80">Kreditlar</span>
+                        <span className="text-sm font-medium text-white/80">{t('pricing.credits')}</span>
                         <span className="font-bold text-[#1497F3]">{plan.credits}</span>
                     </div>
                     
@@ -239,19 +264,19 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
                         {plan.features.map((f: string) => (
                             <li key={f} className="flex items-start gap-3 text-sm">
                                 <Check size={16} className="text-green-400 shrink-0 mt-0.5" />
-                                <span className="text-white/90">{f}</span>
+                                <span className="text-white/90">{featureLabel(f)}</span>
                             </li>
                         ))}
                         {plan.notIncluded.map((f: string) => (
                             <li key={f} className="flex items-start gap-3 text-sm opacity-50">
                                 <X size={16} className="text-red-400 shrink-0 mt-0.5" />
-                                <span>{f}</span>
+                                <span>{featureLabel(f)}</span>
                             </li>
                         ))}
                     </ul>
                     
                     <button onClick={() => handleSelectPlan(plan)} className={`w-full py-3 rounded-xl font-semibold transition-colors ${plan.highlight ? 'bg-[#1497F3] hover:bg-[#1497F3]/90 text-white shadow-lg shadow-[#1497F3]/20' : 'bg-white text-black hover:bg-gray-200'}`}>
-                        Tanlash
+                        {t('pricing.choose')}
                     </button>
                 </motion.div>
             ))}
@@ -259,17 +284,17 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
 
          {/* Section 2: Comparison Table */}
          <div className="mb-24 overflow-x-auto custom-scrollbar pb-6">
-             <h2 className="text-2xl font-bold mb-8 text-center">Xususiyatlarni solishtirish</h2>
+             <h2 className="text-2xl font-bold mb-8 text-center">{t('pricing.compareTitle')}</h2>
              
              <div className="min-w-[800px] border border-white/10 rounded-3xl overflow-hidden bg-black/40 backdrop-blur-md">
                  <div className="grid grid-cols-6 border-b border-white/10 bg-white/5 p-4 items-center">
-                     <div className="font-bold text-white/70">Xususiyat</div>
+                     <div className="font-bold text-white/70">{t('pricing.feature')}</div>
                      {plans.map(p => <div key={p.id} className="text-center font-bold text-sm tracking-wider">{p.name}</div>)}
                  </div>
                  
                  {featureList.map((feature, i) => (
                      <div key={i} className={`grid grid-cols-6 p-4 items-center ${i % 2 === 0 ? '' : 'bg-white/5'} border-b border-white/5 hover:bg-white/10 transition-colors`}>
-                         <div className="text-sm text-white/80">{feature}</div>
+                         <div className="text-sm text-white/80">{featureLabel(feature)}</div>
                          {plans.map(p => {
                             const hasFeature = (p.features || []).includes(feature);
 
@@ -286,14 +311,10 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
 
          {/* Section 3: FAQ */}
          <div className="max-w-3xl mx-auto mb-24">
-            <h2 className="text-2xl font-bold mb-8 text-center">Tez-tez so'raladigan savollar</h2>
+            <h2 className="text-2xl font-bold mb-8 text-center">{t('pricing.faqTitle')}</h2>
             
             <div className="space-y-4">
-               {[
-                   { q: "Kreditlar qanday hisoblanadi?", a: "Har bir so'rov yoki analiz turiga qarab kreditingizdan belgilar olinadi. Masalan, mahsulot analizi 5 kredit bo'lsa, uni ishlatish hisobingizdan 5 kredit yechib oladi." },
-                   { q: "Ishlatilmay qolgan kreditlar keyingi oyga o'tadimi?", a: "Yo'q, obuna bo'yicha berilgan kreditlar har oy oxirida yangilanadi. Ammo qo'shimcha sotib olingan paketlar o'z kuchida qoladi." },
-                   { q: "Tarifni istalgan paytda o'zgartira olamanmi?", a: "Ha, profilingizdan istalgan vaqtda yuqoriroq tarifga o'tishingiz mumkin." }
-               ].map((faq, i) => (
+               {get<{ q: string; a: string }[]>('pricing.faq').map((faq, i) => (
                    <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-6">
                        <h4 className="font-semibold text-lg mb-2">{faq.q}</h4>
                        <p className="text-white/60 text-sm leading-relaxed">{faq.a}</p>
@@ -305,10 +326,10 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
          {/* Section 4: CTA */}
          <div className="bg-gradient-to-r from-[#1497F3]/20 to-purple-500/20 border border-[#1497F3]/30 rounded-3xl p-10 md:p-16 text-center max-w-4xl mx-auto mb-24 relative overflow-hidden">
              <div className="relative z-10">
-                 <h2 className="text-3xl font-bold mb-4">Savdolarni keyingi bosqichga olib chiqing</h2>
-                 <p className="text-white/60 mb-8 max-w-xl mx-auto">To'g'ri tarifni tanlash bilan ko'proq imkoniyatlarga ega bo'lasiz va bozorni yaxshi his qilasiz.</p>
+                 <h2 className="text-3xl font-bold mb-4">{t('pricing.ctaTitle')}</h2>
+                 <p className="text-white/60 mb-8 max-w-xl mx-auto">{t('pricing.ctaBody')}</p>
                  <button onClick={onNavigateToProfile} className="px-8 py-3.5 bg-white text-black font-semibold rounded-xl hover:bg-gray-200 transition-colors inline-flex items-center gap-2 shadow-xl shadow-white/10">
-                     Profilga o'tish <Rocket size={18} />
+                     {t('pricing.goProfile')} <Rocket size={18} />
                  </button>
              </div>
              
@@ -324,28 +345,28 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
       {modalState.type === 'confirm' && modalState.plan && (
          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
              <div className="bg-[#0A0D12] border border-white/10 rounded-2xl w-full max-w-md p-6">
-                 <h3 className="text-xl font-bold mb-4">Tarifni tasdiqlash</h3>
+                 <h3 className="text-xl font-bold mb-4">{t('pricing.confirmTitle')}</h3>
                  <div className="space-y-4 mb-6">
                     <div className="flex justify-between">
-                       <span className="text-white/50">Tarif nomi:</span>
+                       <span className="text-white/50">{t('pricing.planName')}</span>
                        <span className="font-bold">{modalState.plan.name}</span>
                     </div>
                     <div className="flex justify-between">
-                       <span className="text-white/50">Narxi:</span>
+                       <span className="text-white/50">{t('pricing.price')}</span>
                        <span className="font-bold text-[#1497F3]">{modalState.plan.price}</span>
                     </div>
                     <div className="flex justify-between">
-                       <span className="text-white/50">Joriy balans:</span>
+                       <span className="text-white/50">{t('pricing.currentBalance')}</span>
                        <span className="font-bold">{userBalance}</span>
                     </div>
                     <div className="border-t border-white/10 pt-4 flex justify-between">
-                       <span className="text-white/80 font-bold">Qolgan balans:</span>
+                       <span className="text-white/80 font-bold">{t('pricing.remainingBalance')}</span>
                        <span className="font-bold text-white">{userBalance - modalState.plan.price}</span>
                     </div>
                  </div>
                  <div className="flex gap-4">
-                    <button onClick={() => setModalState({ type: 'none' })} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">Bekor qilish</button>
-                    <button onClick={handleConfirmPurchase} className="flex-1 px-4 py-2 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white font-bold rounded-xl shadow-lg transition-colors">Sotib olish</button>
+                    <button onClick={() => setModalState({ type: 'none' })} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">{t('common.cancel')}</button>
+                    <button onClick={handleConfirmPurchase} className="flex-1 px-4 py-2 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white font-bold rounded-xl shadow-lg transition-colors">{t('pricing.purchase')}</button>
                  </div>
              </div>
          </div>
@@ -355,16 +376,16 @@ export default function Pricing({ user, onShowToast, onNavigateToProfile, hideHe
       {modalState.type === 'insufficient' && modalState.plan && (
          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
              <div className="bg-[#0A0D12] border border-white/10 rounded-2xl w-full max-w-md p-6">
-                 <h3 className="text-xl font-bold mb-4 text-red-500 flex items-center gap-2"><X size={24} /> Mablag' yetarli emas</h3>
+                 <h3 className="text-xl font-bold mb-4 text-red-500 flex items-center gap-2"><X size={24} /> {t('pricing.insufficientTitle')}</h3>
                  <p className="text-white/70 mb-6">
-                    Siz chormoqchi bo'lgan <strong>{modalState.plan.name}</strong> tarifi uchun balansda yetarli mablag' yo'q. <br/><br/>
-                    Tarif narxi: {modalState.plan.price} <br/>
-                    Joriy balans: {userBalance} <br/>
-                    Yana kerak: <span className="font-bold text-[#1497F3]">{modalState.plan.price - userBalance}</span>
+                    {t('pricing.insufficientBody', { plan: modalState.plan.name })} <br/><br/>
+                    {t('pricing.price')} {modalState.plan.price} <br/>
+                    {t('pricing.currentBalance')} {userBalance} <br/>
+                    {t('pricing.needMore')} <span className="font-bold text-[#1497F3]">{modalState.plan.price - userBalance}</span>
                  </p>
                  <div className="flex gap-4">
-                    <button onClick={() => setModalState({ type: 'none' })} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">Bekor qilish</button>
-                    <button onClick={() => { setModalState({ type: 'none' }); onNavigateToProfile(); }} className="flex-1 px-4 py-2 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white font-bold rounded-xl shadow-lg transition-colors">Balansni to'ldirish</button>
+                    <button onClick={() => setModalState({ type: 'none' })} className="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors">{t('common.cancel')}</button>
+                    <button onClick={() => { setModalState({ type: 'none' }); onNavigateToProfile(); }} className="flex-1 px-4 py-2 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white font-bold rounded-xl shadow-lg transition-colors">{t('pricing.topUpBalance')}</button>
                  </div>
              </div>
          </div>

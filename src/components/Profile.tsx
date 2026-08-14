@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { db, auth, logOut, handleFirestoreError, OperationType } from '../firebase';
 import { doc, getDoc, setDoc, updateDoc, collection, query, where, orderBy, getDocs, limit } from 'firebase/firestore';
@@ -6,6 +6,7 @@ import { updateProfile, updatePassword } from 'firebase/auth';
 import { Save, User, Briefcase, CreditCard, Bookmark, Shield, Settings, LogOut, Check, FileText, Activity, Wallet, Upload, ArrowRight } from 'lucide-react';
 import AdminBanners from './AdminBanners';
 import LandingManager from './LandingManager';
+import { Language, useI18n } from '../i18n';
 
 interface ProfileProps {
   user: any;
@@ -15,6 +16,7 @@ interface ProfileProps {
 }
 
 export default function Profile({ user, onShowToast, onNavigateToPricing, initialTab = 'personal' }: ProfileProps) {
+  const { language, setLanguage, t } = useI18n();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -117,10 +119,10 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
         phone_number: phoneNumber,
         updatedAt: Date.now()
       });
-      onShowToast("Profil muvaffaqiyatli saqlandi");
+      onShowToast(t('profile.profileSaved'));
     } catch (error) {
       console.error(error);
-      onShowToast("Xatolik yuz berdi");
+      onShowToast(t('common.error'));
     } finally {
       setSaving(false);
     }
@@ -138,10 +140,10 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
         main_goals: mainGoals,
         updatedAt: Date.now()
       });
-      onShowToast("Biznes ma'lumotlari saqlandi");
+      onShowToast(t('profile.businessSaved'));
     } catch (error) {
       console.error(error);
-      onShowToast("Xatolik yuz berdi");
+      onShowToast(t('common.error'));
     } finally {
       setSaving(false);
     }
@@ -151,11 +153,11 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
     if (!user || !newPassword) return;
     try {
       await updatePassword(user, newPassword);
-      onShowToast("Parol muvaffaqiyatli o'zgartirildi");
+      onShowToast(t('profile.passwordChanged'));
       setNewPassword('');
     } catch (error) {
       console.error(error);
-      onShowToast("Xatolik. Qaytadan tizimga kiring.");
+      onShowToast(t('profile.passwordError'));
     }
   };
 
@@ -179,7 +181,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
 
   const handleSubmitPayment = async () => {
     if (!paymentMethod || !paymentFullName || !paymentAmount || !paymentScreenshotBase64) {
-       onShowToast("Iltimos, barcha majburiy maydonlarni to'ldiring");
+       onShowToast(t('profile.fillRequired'));
        return;
     }
     
@@ -207,28 +209,68 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
       setPaymentComment('');
       setPaymentScreenshotBase64('');
       
-      onShowToast("To'lov arizangiz qabul qilindi. 30 daqiqa ichida tekshiriladi");
+      onShowToast(t('profile.paymentAccepted'));
     } catch(err) {
       console.error(err);
-      onShowToast("Xatolik yuz berdi");
+      onShowToast(t('common.error'));
     } finally {
       setSaving(false);
     }
   };
 
   const tabs = [
-    { id: 'personal', label: 'Shaxsiy ma\'lumotlar', icon: <User size={18} /> },
-    { id: 'business', label: 'Biznes profil', icon: <Briefcase size={18} /> },
-    { id: 'credits', label: 'Kreditlar', icon: <CreditCard size={18} /> },
-    { id: 'billing', label: 'To\'lovlar', icon: <Wallet size={18} /> },
-    { id: 'saved', label: 'Saqlanganlar', icon: <Bookmark size={18} /> },
-    { id: 'security', label: 'Xavfsizlik', icon: <Shield size={18} /> },
-    { id: 'preferences', label: 'Sozlamalar', icon: <Settings size={18} /> },
+    { id: 'personal', label: t('profile.personal'), icon: <User size={18} /> },
+    { id: 'business', label: t('profile.business'), icon: <Briefcase size={18} /> },
+    { id: 'credits', label: t('profile.credits'), icon: <CreditCard size={18} /> },
+    { id: 'billing', label: t('profile.billing'), icon: <Wallet size={18} /> },
+    { id: 'saved', label: t('profile.saved'), icon: <Bookmark size={18} /> },
+    { id: 'security', label: t('profile.security'), icon: <Shield size={18} /> },
+    { id: 'preferences', label: t('profile.preferences'), icon: <Settings size={18} /> },
   ];
   
   if (userData?.is_admin) {
-    tabs.push({ id: 'admin', label: 'Admin Panel', icon: <Shield size={18} /> });
+    tabs.push({ id: 'admin', label: t('profile.adminPanel'), icon: <Shield size={18} /> });
   }
+
+  const occupationOptions = [
+    { value: 'Marketplace seller', label: t('onboarding.options.seller') },
+    { value: 'Dropshipper', label: t('onboarding.options.dropshipper') },
+    { value: 'Store owner', label: t('onboarding.options.owner') },
+    { value: 'Marketing agency', label: t('onboarding.options.agency') },
+    { value: 'Beginner entrepreneur', label: t('onboarding.options.beginner') },
+  ];
+
+  const platformOptions = [
+    { value: 'Uzum', label: 'Uzum' },
+    { value: 'Yandex Market', label: 'Yandex Market' },
+    { value: 'Ozon', label: 'Ozon' },
+    { value: 'Wildberries', label: 'Wildberries' },
+    { value: 'Shopify', label: 'Shopify' },
+    { value: 'TikTok Shop', label: 'TikTok Shop' },
+    { value: 'Other', label: t('common.none') },
+  ];
+
+  const teamOptions = [
+    { value: 'Faqat men', label: t('onboarding.options.onlyMe') },
+    { value: '2-5', label: '2-5' },
+    { value: '6-10', label: '6-10' },
+    { value: '11-50', label: '11-50' },
+    { value: '50+', label: '50+' },
+  ];
+
+  const goalOptions = [
+    { value: 'Winning products topish', label: t('onboarding.options.products') },
+    { value: 'Trendlarni kuzatish', label: t('onboarding.options.trends') },
+    { value: 'Raqobatchilarni analiz qilish', label: t('onboarding.options.competitors') },
+    { value: 'Reklamalarni yaxshilash', label: t('onboarding.options.ads') },
+    { value: 'Savdoni oshirish', label: t('onboarding.options.sales') },
+  ];
+
+  const languageOptions: { value: Language; label: string }[] = [
+    { value: 'uz', label: t('profile.uzbek') },
+    { value: 'ru', label: t('profile.russian') },
+    { value: 'en', label: t('profile.english') },
+  ];
 
   const [adminSearchEmail, setAdminSearchEmail] = useState('');
   const [adminFoundUser, setAdminFoundUser] = useState<any>(null);
@@ -432,14 +474,14 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
   };
 
   if (loading) {
-     return <div className="flex-1 flex items-center justify-center bg-[#000000] text-white">Loading...</div>;
+     return <div className="flex-1 flex items-center justify-center bg-[#000000] text-white">{t('common.loading')}</div>;
   }
 
   return (
     <div className="flex-1 flex flex-col md:flex-row bg-[#000000] text-white overflow-hidden relative">
       {/* Profile Sidebar */}
       <div className="w-full md:w-64 bg-[#0A0D12]/50 border-r border-white/5 flex flex-col pt-8 px-4 overflow-y-auto z-10 md:h-full shrink-0 max-h-64 md:max-h-none border-b md:border-b-0">
-        <h2 className="text-xl font-bold mb-6 px-2">Sozlamalar</h2>
+        <h2 className="text-xl font-bold mb-6 px-2">{t('profile.settings')}</h2>
         <div className="flex flex-row md:flex-col gap-1 overflow-x-auto custom-scrollbar pb-2 md:pb-0">
           {tabs.map(tab => (
             <button
@@ -462,8 +504,8 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'personal' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Shaxsiy ma'lumotlar</h3>
-                <p className="text-white/50 text-sm">O'zingiz haqingizdagi asosiy ma'lumotlar</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.personal')}</h3>
+                <p className="text-white/50 text-sm">{t('profile.personalHint')}</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
@@ -472,21 +514,21 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
                     {user?.photoURL ? <img src={user.photoURL} alt="Avatar" className="w-full h-full object-cover" /> : user?.displayName?.[0] || 'U'}
                   </div>
                   <div>
-                     <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-medium transition-colors border border-white/5">Suratni o'zgartirish</button>
+                     <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-medium transition-colors border border-white/5">{t('profile.changePhoto')}</button>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">F.I.Sh</label>
+                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.fullName')}</label>
                     <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Email (O'zgartirib bo'lmaydi)</label>
+                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.emailLocked')}</label>
                     <input type="email" value={user?.email || ''} disabled className="w-full bg-white/5 border border-white/5 opacity-70 rounded-xl px-4 py-3" />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Telefon raqam</label>
+                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.phone')}</label>
                     <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="+998 90 123 45 67" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
                   </div>
                 </div>
@@ -495,7 +537,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
               <div className="flex justify-end">
                 <button onClick={handleSavePersonal} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white rounded-xl font-medium transition-colors shadow-[0_0_20px_rgba(20,151,243,0.3)]">
                   <Save size={18} />
-                  {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                  {saving ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </motion.div>
@@ -505,65 +547,57 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'business' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Biznes profil</h3>
-                <p className="text-white/50 text-sm">Savdo ma'lumotlaringiz</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.business')}</h3>
+                <p className="text-white/50 text-sm">{t('profile.businessHint')}</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
                 <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Soha</label>
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{t('profile.occupation')}</label>
                   <select value={occupation} onChange={e => setOccupation(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors appearance-none">
-                    <option value="">Tanlang</option>
-                    <option value="Marketplace seller">Marketplace seller</option>
-                    <option value="Dropshipper">Dropshipper</option>
-                    <option value="Store owner">Store owner</option>
-                    <option value="Marketing agency">Marketing agency</option>
-                    <option value="Beginner entrepreneur">Beginner entrepreneur</option>
+                    <option value="">{t('common.select')}</option>
+                    {occupationOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Do'kon nomi</label>
-                  <input type="text" value={storeName} onChange={e => setStoreName(e.target.value)} placeholder="Do'koningiz bormi?" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{t('profile.storeName')}</label>
+                  <input type="text" value={storeName} onChange={e => setStoreName(e.target.value)} placeholder={t('profile.storeNameQuestion')} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Ishchilar soni</label>
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{t('profile.teamSize')}</label>
                   <select value={teamSize} onChange={e => setTeamSize(e.target.value)} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors appearance-none">
-                    <option value="">Tanlang</option>
-                    <option value="Faqat men">Faqat men</option>
-                    <option value="2-5">2-5 ishchi</option>
-                    <option value="6-10">6-10 ishchi</option>
-                    <option value="11-50">11-50 ishchi</option>
-                    <option value="50+">50+ ishchi</option>
+                    <option value="">{t('common.select')}</option>
+                    {teamOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Sotuv platformalari</label>
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{t('profile.platforms')}</label>
                   <div className="flex flex-wrap gap-2">
-                    {['Uzum', 'Yandex Market', 'Ozon', 'Wildberries', 'Shopify', 'TikTok Shop', 'Other'].map(opt => (
+                    {platformOptions.map(opt => (
                       <button 
-                        key={opt} 
-                        onClick={() => togglePlatform(opt)}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors border ${platforms.includes(opt) ? 'bg-[#1497F3]/20 border-[#1497F3] text-white' : 'bg-transparent border-white/10 text-white/60 hover:border-white/30'}`}
+                        key={opt.value} 
+                        onClick={() => togglePlatform(opt.value)}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors border ${platforms.includes(opt.value) ? 'bg-[#1497F3]/20 border-[#1497F3] text-white' : 'bg-transparent border-white/10 text-white/60 hover:border-white/30'}`}
                       >
-                        {opt}
+                        {opt.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Asosiy maqsadlar</label>
+                  <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">{t('profile.mainGoals')}</label>
                   <div className="flex flex-wrap gap-2">
-                     {['Winning products topish', 'Trendlarni kuzatish', 'Raqobatchilarni analiz qilish', 'Reklamalarni yaxshilash', 'Savdoni oshirish'].map(opt => (
+                     {goalOptions.map(opt => (
                       <button 
-                        key={opt} 
-                        onClick={() => toggleGoal(opt)}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors border ${mainGoals.includes(opt) ? 'bg-[#1497F3]/20 border-[#1497F3] text-white' : 'bg-transparent border-white/10 text-white/60 hover:border-white/30'}`}
+                        key={opt.value} 
+                        onClick={() => toggleGoal(opt.value)}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors border ${mainGoals.includes(opt.value) ? 'bg-[#1497F3]/20 border-[#1497F3] text-white' : 'bg-transparent border-white/10 text-white/60 hover:border-white/30'}`}
                       >
-                        {opt}
+                        {opt.label}
                       </button>
                     ))}
                   </div>
@@ -573,7 +607,7 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
               <div className="flex justify-end">
                 <button onClick={handleSaveBusiness} disabled={saving} className="flex items-center gap-2 px-6 py-3 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white rounded-xl font-medium transition-colors shadow-[0_0_20px_rgba(20,151,243,0.3)]">
                   <Save size={18} />
-                  {saving ? 'Saqlanmoqda...' : 'Saqlash'}
+                  {saving ? t('common.saving') : t('common.save')}
                 </button>
               </div>
             </motion.div>
@@ -583,8 +617,8 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'credits' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Kreditlar va Obuna</h3>
-                <p className="text-white/50 text-sm">Tarif va foydalanish statistikasi</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.creditsTitle')}</h3>
+                <p className="text-white/50 text-sm">{t('profile.creditsHint')}</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -592,13 +626,13 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
                   <div className="absolute top-0 right-0 p-4 opacity-10">
                      <Wallet size={64} />
                   </div>
-                  <h4 className="text-green-400 text-sm font-semibold mb-1 uppercase tracking-widest">Joriy Balans</h4>
+                  <h4 className="text-green-400 text-sm font-semibold mb-1 uppercase tracking-widest">{t('profile.currentBalance')}</h4>
                   <div className="text-3xl font-bold mb-2">{userData?.balance || 0} <span className="text-sm font-normal text-white/50">UZS</span></div>
                   <p className="text-white/60 text-sm mb-6 mt-2">
-                     Tarif sotib olish uchun mablag'
+                     {t('profile.balancePurpose')}
                   </p>
                   <button onClick={() => setActiveTab('billing')} className="w-full px-4 py-2.5 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold transition-colors text-sm">
-                    Balansni to'ldirish
+                    {t('profile.topUpBalance')}
                   </button>
                 </div>
 
@@ -606,49 +640,49 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
                   <div className="absolute top-0 right-0 p-4 opacity-10">
                      <CreditCard size={64} />
                   </div>
-                  <h4 className="text-[#1497F3] text-sm font-semibold mb-1 uppercase tracking-widest">Joriy tarif</h4>
+                  <h4 className="text-[#1497F3] text-sm font-semibold mb-1 uppercase tracking-widest">{t('profile.currentPlan')}</h4>
                   <div className="text-3xl font-bold mb-2">{(userData?.plan_id || 'free').toUpperCase()}</div>
                   <div className="text-sm font-medium mb-1 text-white/80 border border-white/10 px-2 py-1 inline-block rounded bg-black/20">
-                     Amal qilish muddati: Cheksiz
+                     {t('profile.expires')}: {t('profile.unlimited')}
                   </div>
                   <p className="text-white/60 text-sm mb-6 mt-2">
-                     Asosiy tahlil vositalaridan foydalanish
+                     {t('profile.planUsageBody')}
                   </p>
                   <button onClick={() => onNavigateToPricing && onNavigateToPricing()} className="w-full px-4 py-2.5 bg-white text-black hover:bg-gray-100 rounded-xl font-semibold transition-colors text-sm">
-                    Tarifni o'zgartirish
+                    {t('profile.changePlan')}
                   </button>
                 </div>
 
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col justify-between">
                   <div>
-                    <h4 className="text-white/50 text-sm font-semibold mb-4 uppercase tracking-widest">Xarajatlar limitlari</h4>
+                    <h4 className="text-white/50 text-sm font-semibold mb-4 uppercase tracking-widest">{t('profile.usageLimits')}</h4>
                     <div className="flex justify-between items-end mb-2">
                        <span className="text-2xl font-bold">{Math.max(totalCredits - usedCredits, 0)} <span className="text-white/40 text-sm font-normal">/ {totalCredits}</span></span>
                     </div>
                     <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                       <div className="bg-[#1497F3] h-full transition-all duration-500" style={{ width: `${Math.min((usedCredits / Math.max(totalCredits, 1)) * 100, 100)}%` }}></div>
                     </div>
-                    <p className="text-white/40 text-xs mt-2">Kredit ishlatingiz. Qolgan: {Math.max(totalCredits - usedCredits, 0)}</p>
+                    <p className="text-white/40 text-xs mt-2">{t('profile.creditsUsed', { count: Math.max(totalCredits - usedCredits, 0) })}</p>
                   </div>
                 </div>
               </div>
               
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <h4 className="font-semibold text-white mb-4 flex items-center gap-2"><Activity size={16} className="text-[#1497F3]" /> Foydalanish tarixi</h4>
+                <h4 className="font-semibold text-white mb-4 flex items-center gap-2"><Activity size={16} className="text-[#1497F3]" /> {t('profile.usageHistory')}</h4>
                 {usageLogs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 bg-black/20 rounded-xl border border-white/5 border-dashed">
-                     <p className="text-white/50 text-sm">Hali hech qanday funksiya ishlatilmadi.</p>
+                     <p className="text-white/50 text-sm">{t('profile.noUsage')}</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {usageLogs.map((log) => (
                       <div key={log.id} className="flex items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5">
                         <div className="flex flex-col">
-                           <span className="font-medium text-white/90 text-sm">{log.feature} xizmati ishladi</span>
+                           <span className="font-medium text-white/90 text-sm">{t('profile.featureUsed', { feature: log.feature })}</span>
                            <span className="text-xs text-white/40 mt-1">{new Date(log.timestamp).toLocaleString('uz-UZ')}</span>
                         </div>
                         <div className="text-red-400 font-bold text-sm">
-                           -{log.credits_consumed} kredit
+                           -{log.credits_consumed} {t('profile.creditUnit')}
                         </div>
                       </div>
                     ))}
@@ -657,14 +691,14 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <h4 className="text-lg font-bold mb-4">Obuna</h4>
+                <h4 className="text-lg font-bold mb-4">{t('profile.subscription')}</h4>
                 <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5">
                   <div className="mb-4 sm:mb-0">
-                    <p className="font-medium text-white mb-1">PRO Tarifiga o'tish</p>
-                    <p className="text-sm text-white/50">Cheklanmagan AI tahlillar va to'liq trend datchiklari</p>
+                    <p className="font-medium text-white mb-1">{t('profile.upgradePro')}</p>
+                    <p className="text-sm text-white/50">{t('profile.proBody')}</p>
                   </div>
                   <button onClick={() => onNavigateToPricing && onNavigateToPricing()} className="px-6 py-2.5 bg-gradient-to-r from-purple-500 to-[#1497F3] text-white font-semibold rounded-xl hover:opacity-90 transition-opacity w-full sm:w-auto shadow-lg">
-                    PRO'ga o'tish
+                    {t('profile.upgradePro')}
                   </button>
                 </div>
               </div>
@@ -675,27 +709,27 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'billing' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">To'lovlar</h3>
-                <p className="text-white/50 text-sm">Balansni to'ldirish va to'lovlar tarixi</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.billing')}</h3>
+                <p className="text-white/50 text-sm">{t('profile.billingHint')}</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
-                <h4 className="text-lg font-bold mb-2">Balansni to'ldirish arizasi</h4>
+                <h4 className="text-lg font-bold mb-2">{t('profile.paymentRequestTitle')}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="col-span-1 md:col-span-2">
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">To'lov tizimini tanlang</label>
+                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.choosePaymentSystem')}</label>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                       <button disabled className="opacity-50 cursor-not-allowed border border-white/10 bg-black/40 rounded-xl p-3 text-sm flex flex-col items-center">
                         <span className="font-bold mb-1">Click</span>
-                        <span className="text-[10px] text-white/40 text-center leading-tight">Texnik ishlar olib borilmoqda</span>
+                        <span className="text-[10px] text-white/40 text-center leading-tight">{t('profile.maintenance')}</span>
                       </button>
                       <button disabled className="opacity-50 cursor-not-allowed border border-white/10 bg-black/40 rounded-xl p-3 text-sm flex flex-col items-center">
                         <span className="font-bold mb-1">Payme</span>
-                        <span className="text-[10px] text-white/40 text-center leading-tight">Texnik ishlar olib borilmoqda</span>
+                        <span className="text-[10px] text-white/40 text-center leading-tight">{t('profile.maintenance')}</span>
                       </button>
                       <button disabled className="opacity-50 cursor-not-allowed border border-white/10 bg-black/40 rounded-xl p-3 text-sm flex flex-col items-center">
                         <span className="font-bold mb-1">Uzum Bank</span>
-                        <span className="text-[10px] text-white/40 text-center leading-tight">Texnik ishlar olib borilmoqda</span>
+                        <span className="text-[10px] text-white/40 text-center leading-tight">{t('profile.maintenance')}</span>
                       </button>
                       
                       <button onClick={() => setPaymentMethod('Humo')} className={`border rounded-xl p-3 text-sm flex flex-col items-center justify-center transition-all ${paymentMethod === 'Humo' ? 'border-[#1497F3] bg-[#1497F3]/10' : 'border-white/10 bg-black/40 hover:bg-white/5'}`}>
@@ -711,18 +745,18 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
                 {paymentMethod && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-6 mt-4 pt-6 border-t border-white/10">
                     <div className="bg-[#1497F3]/10 border border-[#1497F3]/30 p-4 rounded-xl">
-                      <p className="text-sm text-white/80 mb-2">Quyidagi hisob raqamiga to'lovni amalga oshiring:</p>
+                      <p className="text-sm text-white/80 mb-2">{t('profile.paymentInstruction')}</p>
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
-                           <span className="text-white/50">Karta raqami:</span>
+                           <span className="text-white/50">{t('profile.cardNumber')}</span>
                            <span className="font-bold text-[#1497F3]">{paymentMethod === 'Humo' ? appSettings?.humoCard : appSettings?.visaCard }</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                           <span className="text-white/50">F.I.Sh:</span>
+                           <span className="text-white/50">{t('profile.fullName')}:</span>
                            <span className="font-bold text-white/90">{paymentMethod === 'Humo' ? appSettings?.humoHolder : appSettings?.visaHolder }</span>
                         </div>
                         <div className="flex items-center justify-between text-sm">
-                           <span className="text-white/50">Bank:</span>
+                           <span className="text-white/50">{t('profile.bank')}</span>
                            <span className="font-bold text-white/90">{paymentMethod === 'Humo' ? 'Humo' : 'Visa'} Bank</span>
                         </div>
                       </div>
@@ -730,50 +764,50 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">F.I.Sh</label>
-                        <input type="text" value={paymentFullName} onChange={e => setPaymentFullName(e.target.value)} placeholder="Kartadagi Ism Familiya" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3]" />
+                        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.fullName')}</label>
+                        <input type="text" value={paymentFullName} onChange={e => setPaymentFullName(e.target.value)} placeholder={t('profile.cardFullNamePlaceholder')} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3]" />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">To'lov miqdori (so'm/$)</label>
+                        <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.paymentAmount')}</label>
                         <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} placeholder="0" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3]" />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Sharh (Ixtiyoriy)</label>
-                      <textarea value={paymentComment} onChange={e => setPaymentComment(e.target.value)} placeholder="Qo'shimcha ma'lumotlar..." className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 min-h-[80px] focus:outline-none focus:border-[#1497F3]" />
+                      <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.commentOptional')}</label>
+                      <textarea value={paymentComment} onChange={e => setPaymentComment(e.target.value)} placeholder={t('profile.commentPlaceholder')} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 min-h-[80px] focus:outline-none focus:border-[#1497F3]" />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">To'lov skrinshoti (Majburiy)</label>
+                      <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.screenshotRequired')}</label>
                       <div className="relative border-2 border-dashed border-white/20 rounded-xl p-6 flex flex-col items-center justify-center bg-black/30 hover:bg-white/5 hover:border-white/30 transition-all cursor-pointer overflow-hidden">
                          <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20" />
                          {paymentScreenshotBase64 ? (
                            <div className="flex flex-col items-center pointer-events-none">
                              <Check size={32} className="text-green-500 mb-2" />
-                             <span className="text-sm font-medium text-white">Rasm yuklandi</span>
+                             <span className="text-sm font-medium text-white">{t('profile.imageUploaded')}</span>
                            </div>
                          ) : (
                            <div className="flex flex-col items-center pointer-events-none">
                              <Upload size={32} className="text-white/40 mb-2" />
-                             <span className="text-sm font-medium text-white/80">Skrinshotni yuklash uchun bosing</span>
+                             <span className="text-sm font-medium text-white/80">{t('profile.uploadScreenshot')}</span>
                            </div>
                          )}
                       </div>
                     </div>
 
                     <button onClick={handleSubmitPayment} disabled={saving} className="w-full py-3.5 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white font-bold rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2">
-                      {saving ? 'Yuborilmoqda...' : 'Arizani yuborish'} <ArrowRight size={18} />
+                      {saving ? t('profile.submitting') : t('profile.submitRequest')} <ArrowRight size={18} />
                     </button>
                   </motion.div>
                 )}
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                 <h4 className="font-semibold text-white mb-4">To'lovlar tarixi</h4>
+                 <h4 className="font-semibold text-white mb-4">{t('profile.paymentHistory')}</h4>
                  {paymentRequests.length === 0 ? (
                    <div className="flex flex-col items-center justify-center py-10 bg-black/20 rounded-xl border border-white/5 border-dashed">
-                      <p className="text-white/50 text-sm">Hali hech qanday ariza mavjud emas.</p>
+                      <p className="text-white/50 text-sm">{t('profile.noPaymentRequests')}</p>
                    </div>
                  ) : (
                    <div className="space-y-3">
@@ -784,9 +818,9 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
                              <span className="text-xs text-white/40 mt-1">{req.created_at?.toDate ? req.created_at.toDate().toLocaleString('uz-UZ') : new Date(req.created_at).toLocaleString('uz-UZ')}</span>
                          </div>
                          <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
-                            {req.status === 'pending' && <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2.5 py-1 rounded-md font-semibold border border-yellow-500/30">Kutilmoqda</span>}
-                            {req.status === 'approved' && <span className="bg-green-500/20 text-green-400 text-xs px-2.5 py-1 rounded-md font-semibold border border-green-500/30">Tasdiqlandi</span>}
-                            {req.status === 'rejected' && <span className="bg-red-500/20 text-red-400 text-xs px-2.5 py-1 rounded-md font-semibold border border-red-500/30">Rad etildi</span>}
+                            {req.status === 'pending' && <span className="bg-yellow-500/20 text-yellow-400 text-xs px-2.5 py-1 rounded-md font-semibold border border-yellow-500/30">{t('profile.statusPending')}</span>}
+                            {req.status === 'approved' && <span className="bg-green-500/20 text-green-400 text-xs px-2.5 py-1 rounded-md font-semibold border border-green-500/30">{t('profile.statusApproved')}</span>}
+                            {req.status === 'rejected' && <span className="bg-red-500/20 text-red-400 text-xs px-2.5 py-1 rounded-md font-semibold border border-red-500/30">{t('profile.statusRejected')}</span>}
                             
                             {req.status === 'pending' && appSettings?.supportLink && (
                               <a href={appSettings.supportLink} target="_blank" rel="noopener noreferrer" className="text-xs text-[#1497F3] border border-[#1497F3]/30 px-3 py-1 rounded-md hover:bg-[#1497F3]/10">
@@ -806,28 +840,28 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'saved' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Saqlangan tahlillar va So'rovlar</h3>
-                <p className="text-white/50 text-sm">O'zingiz saqlab qo'ygan natijalar</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.savedTitle')}</h3>
+                <p className="text-white/50 text-sm">{t('profile.savedHint')}</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                 <h4 className="font-semibold text-white mb-4 flex items-center gap-2"><FileText size={16} className="text-[#1497F3]"/> Tahlil hisobotlari</h4>
+                 <h4 className="font-semibold text-white mb-4 flex items-center gap-2"><FileText size={16} className="text-[#1497F3]"/> {t('profile.analysisReports')}</h4>
                  
                  <div className="flex flex-col items-center justify-center py-10 bg-black/20 rounded-xl border border-white/5 border-dashed">
                    <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white/30 mb-3">
                      <Bookmark size={20} />
                    </div>
-                   <p className="text-white/50 text-sm">Sizda hozircha saqlangan tahlillar yo'q.</p>
+                   <p className="text-white/50 text-sm">{t('profile.noSavedAnalysis')}</p>
                  </div>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                 <h4 className="font-semibold text-white mb-4 flex items-center gap-2"><Bookmark size={16} className="text-[#1497F3]"/> Saqlangan promptlar</h4>
+                 <h4 className="font-semibold text-white mb-4 flex items-center gap-2"><Bookmark size={16} className="text-[#1497F3]"/> {t('profile.savedPrompts')}</h4>
                  <div className="flex flex-col items-center justify-center py-10 bg-black/20 rounded-xl border border-white/5 border-dashed">
                    <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white/30 mb-3">
                      <Bookmark size={20} />
                    </div>
-                   <p className="text-white/50 text-sm">Saqlangan promptlar mavjud emas.</p>
+                   <p className="text-white/50 text-sm">{t('profile.noSavedPrompts')}</p>
                  </div>
               </div>
             </motion.div>
@@ -837,31 +871,31 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'security' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Xavfsizlik</h3>
-                <p className="text-white/50 text-sm">Hisob xavfsizligi va parollar</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.security')}</h3>
+                <p className="text-white/50 text-sm">{t('profile.securityHint')}</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
-                <h4 className="font-medium">Parolni o'zgartirish</h4>
+                <h4 className="font-medium">{t('profile.changePassword')}</h4>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Yangi parol</label>
-                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Yangi parolni kiriting" className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
+                    <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('profile.newPassword')}</label>
+                    <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder={t('profile.newPasswordPlaceholder')} className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
                   </div>
                 </div>
                 <div className="pt-2">
                   <button onClick={handleChangePassword} disabled={!newPassword || newPassword.length < 6} className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-colors border border-white/5 disabled:opacity-50">
-                    Parolni yangilash
+                    {t('profile.updatePassword')}
                   </button>
                 </div>
               </div>
 
               <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
-                <h4 className="font-medium text-red-400 mb-2">Barcha qurilmalardan chiqish</h4>
-                <p className="text-white/50 text-sm mb-6">Xavfsizligingizni oshirish uchun barcha qurilmalardagi seanslarni yopish.</p>
+                <h4 className="font-medium text-red-400 mb-2">{t('profile.logoutAll')}</h4>
+                <p className="text-white/50 text-sm mb-6">{t('profile.logoutAllBody')}</p>
                 <button onClick={() => { logOut(); }} className="flex items-center gap-2 px-6 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl font-medium transition-colors">
                   <LogOut size={16} />
-                  Tizimdan chiqish
+                  {t('profile.logout')}
                 </button>
               </div>
             </motion.div>
@@ -871,33 +905,34 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'preferences' && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Sozlamalar</h3>
-                <p className="text-white/50 text-sm">Til va bildirishnomalar</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.preferences')}</h3>
+                <p className="text-white/50 text-sm">{t('profile.preferencesHint')}</p>
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
                 <div>
-                  <h4 className="font-medium mb-4">Interfeys tili</h4>
+                  <h4 className="font-medium mb-4">{t('profile.interfaceLanguage')}</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <button className="px-4 py-3 bg-[#1497F3]/10 border border-[#1497F3] rounded-xl text-center text-[#1497F3] font-medium flex justify-center items-center gap-2">
-                      <Check size={16} /> O'zbekcha
-                    </button>
-                    <button className="px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-center text-white/50 hover:bg-white/5 transition-colors">
-                      Русский
-                    </button>
-                    <button className="px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-center text-white/50 hover:bg-white/5 transition-colors">
-                      English
-                    </button>
+                    {languageOptions.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => setLanguage(option.value)}
+                        className={`px-4 py-3 rounded-xl text-center font-medium flex justify-center items-center gap-2 transition-colors ${language === option.value ? 'bg-[#1497F3]/10 border border-[#1497F3] text-[#1497F3]' : 'bg-black/50 border border-white/10 text-white/50 hover:bg-white/5'}`}
+                      >
+                        {language === option.value && <Check size={16} />}
+                        {option.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 <div className="pt-6 border-t border-white/10">
-                  <h4 className="font-medium mb-4">Bildirishnomalar</h4>
+                  <h4 className="font-medium mb-4">{t('profile.notifications')}</h4>
                   <div className="space-y-4">
                     <label className="flex items-center justify-between p-4 bg-black/30 border border-white/5 rounded-xl cursor-pointer">
                       <div>
-                        <div className="font-medium text-white/90">Email xabarlar</div>
-                        <div className="text-xs text-white/40 mt-1">Yangi tahlillar va kunlik hisobotlar emailda</div>
+                        <div className="font-medium text-white/90">{t('profile.emailNotifications')}</div>
+                        <div className="text-xs text-white/40 mt-1">{t('profile.emailNotificationsBody')}</div>
                       </div>
                       <div className="w-10 h-6 bg-[#1497F3] rounded-full relative">
                         <div className="absolute right-1 top-1 bg-white w-4 h-4 rounded-full"></div>
@@ -906,8 +941,8 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
                     
                     <label className="flex items-center justify-between p-4 bg-black/30 border border-white/5 rounded-xl cursor-pointer">
                       <div>
-                        <div className="font-medium text-white/90">Yangi xususiyatlar</div>
-                        <div className="text-xs text-white/40 mt-1">Platformadagi yangiliklar haqida ma'lumot</div>
+                        <div className="font-medium text-white/90">{t('profile.newFeatures')}</div>
+                        <div className="text-xs text-white/40 mt-1">{t('profile.newFeaturesBody')}</div>
                       </div>
                       <div className="w-10 h-6 bg-white/20 rounded-full relative">
                         <div className="absolute left-1 top-1 bg-white ml-0 w-4 h-4 rounded-full"></div>
@@ -923,27 +958,27 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
           {activeTab === 'admin' && userData?.is_admin && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <div>
-                <h3 className="text-2xl font-bold mb-1">Admin Panel</h3>
-                <p className="text-white/50 text-sm">Foydalanuvchilarni qidirish va kreditlarni boshqarish</p>
+                <h3 className="text-2xl font-bold mb-1">{t('profile.adminPanel')}</h3>
+                <p className="text-white/50 text-sm">{t('admin.usersCreditsHint')}</p>
                 
                 <div className="flex flex-wrap gap-2 mt-4">
-                  <button onClick={() => setAdminView('users')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'users' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Foydalanuvchilar</button>
-                  <button onClick={() => setAdminView('plans')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'plans' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Tariflar</button>
-                  <button onClick={() => setAdminView('payments')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'payments' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>To'lov arizalari</button>
-                  <button onClick={() => setAdminView('settings')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'settings' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Sozlamalar</button>
-                  <button onClick={() => setAdminView('spinwheel')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'spinwheel' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Spin Wheel</button>
-                  <button onClick={() => setAdminView('banners')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'banners' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Promo Banners</button>
-                  <button onClick={() => setAdminView('landing')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'landing' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>Landing Manager</button>
+                  <button onClick={() => setAdminView('users')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'users' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>{t('admin.users')}</button>
+                  <button onClick={() => setAdminView('plans')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'plans' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>{t('admin.pricing')}</button>
+                  <button onClick={() => setAdminView('payments')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'payments' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>{t('admin.payments')}</button>
+                  <button onClick={() => setAdminView('settings')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'settings' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>{t('admin.settings')}</button>
+                  <button onClick={() => setAdminView('spinwheel')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'spinwheel' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>{t('admin.spinWheel')}</button>
+                  <button onClick={() => setAdminView('banners')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'banners' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>{t('admin.promoBanners')}</button>
+                  <button onClick={() => setAdminView('landing')} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${adminView === 'landing' ? 'bg-[#1497F3] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>{t('admin.landingManager')}</button>
                 </div>
               </div>
 
               {adminView === 'users' && (
               <div className="bg-white/5 border border-[#1497F3]/30 rounded-2xl p-6 space-y-6">
                 <div>
-                   <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Foydalanuvchi ID</label>
+                   <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">{t('admin.users')} ID</label>
                    <div className="flex gap-2">
-                     <input type="text" value={adminSearchEmail} onChange={e => setAdminSearchEmail(e.target.value)} placeholder="User ID kiriting" className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
-                     <button onClick={handleAdminSearch} className="px-6 py-3 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white rounded-xl font-medium transition-colors">Qidirish</button>
+                     <input type="text" value={adminSearchEmail} onChange={e => setAdminSearchEmail(e.target.value)} placeholder="User ID" className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-[#1497F3] transition-colors" />
+                     <button onClick={handleAdminSearch} className="px-6 py-3 bg-[#1497F3] hover:bg-[#1497F3]/90 text-white rounded-xl font-medium transition-colors">{t('common.search')}</button>
                    </div>
                 </div>
 
@@ -1201,3 +1236,4 @@ export default function Profile({ user, onShowToast, onNavigateToPricing, initia
     </div>
   );
 }
+

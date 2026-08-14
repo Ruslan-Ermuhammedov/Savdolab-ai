@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Plus, Trash, Save } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 export default function LandingManager({ onShowToast }: { onShowToast: (msg: string) => void }) {
+  const { t } = useI18n();
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -70,24 +72,24 @@ export default function LandingManager({ onShowToast }: { onShowToast: (msg: str
   const handleSave = async () => {
      try {
        await setDoc(doc(db, 'app_settings', 'landing'), config);
-       onShowToast("Landing sozlamalari saqlandi");
+       onShowToast(t('admin.landingSaved'));
      } catch (e: any) {
-       onShowToast("Xatolik: " + e.message);
+       onShowToast(`${t('common.error')}: ${e.message}`);
      }
   };
 
-  if (loading) return <div>Loyging...</div>;
+  if (loading) return <div>{t('common.loading')}</div>;
 
   return (
     <div className="space-y-8 bg-white/5 border border-[#1497F3]/30 rounded-2xl p-6">
        <div className="flex justify-between items-center bg-black/30 p-4 rounded-xl border border-white/10">
-          <h2 className="text-xl font-bold">Landing Manger (JSON tahrirlash)</h2>
+          <h2 className="text-xl font-bold">{t('admin.landingJsonEditor')}</h2>
           <button onClick={handleSave} className="flex items-center gap-2 bg-[#1497F3] hover:bg-[#1497F3]/80 px-4 py-2 rounded-lg font-bold transition-colors">
-            <Save size={16} /> Saqlash
+            <Save size={16} /> {t('common.save')}
           </button>
        </div>
        <div className="w-full">
-         <p className="text-white/50 text-sm mb-2">Barcha seksiyalar malumotlarini JSON orqali to'la tahrirlash (tezkor usul)</p>
+         <p className="text-white/50 text-sm mb-2">{t('admin.landingJsonHint')}</p>
          <textarea 
             value={JSON.stringify(config, null, 2)}
             onChange={(e) => {

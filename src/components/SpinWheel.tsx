@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { db } from '../firebase';
 import { doc, getDoc, updateDoc, setDoc, collection, writeBatch } from 'firebase/firestore';
 import { X, Gift, ArrowRight } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 interface SpinWheelProps {
     user: any;
@@ -10,20 +11,21 @@ interface SpinWheelProps {
 }
 
 export default function SpinWheel({ user, onComplete }: SpinWheelProps) {
+    const { t } = useI18n();
     const [settings, setSettings] = useState<any>(null);
     const [isSpinning, setIsSpinning] = useState(false);
     const [reward, setReward] = useState<any>(null);
     const [rotation, setRotation] = useState(0);
 
     const defaultRewards = [
-        { label: "5 Kredit", type: "credits", value: 5, color: "#1497F3", probability: 0.15 },
-        { label: "10 Kredit", type: "credits", value: 10, color: "#7B4DFF", probability: 0.15 },
-        { label: "15 Kredit", type: "credits", value: 15, color: "#F31477", probability: 0.1 },
-        { label: "20 Kredit", type: "credits", value: 20, color: "#F3A914", probability: 0.05 },
-        { label: "1 BePul WP Tahlil", type: "credits", value: 4, color: "#14F3A9", probability: 0.2 },
-        { label: "1 BePul TH Tahlil", type: "credits", value: 8, color: "#9A14F3", probability: 0.15 },
-        { label: "20% Chegirma", type: "coupon", value: "WELCOME20", color: "#F34D14", probability: 0.15 },
-        { label: "24S Pro Tarif", type: "pro_access", value: 24, color: "#4D14F3", probability: 0.05 },
+        { label: t('spin.rewards.credits5'), type: "credits", value: 5, color: "#1497F3", probability: 0.15 },
+        { label: t('spin.rewards.credits10'), type: "credits", value: 10, color: "#7B4DFF", probability: 0.15 },
+        { label: t('spin.rewards.credits15'), type: "credits", value: 15, color: "#F31477", probability: 0.1 },
+        { label: t('spin.rewards.credits20'), type: "credits", value: 20, color: "#F3A914", probability: 0.05 },
+        { label: t('spin.rewards.wp'), type: "credits", value: 4, color: "#14F3A9", probability: 0.2 },
+        { label: t('spin.rewards.th'), type: "credits", value: 8, color: "#9A14F3", probability: 0.15 },
+        { label: t('spin.rewards.discount'), type: "coupon", value: "WELCOME20", color: "#F34D14", probability: 0.15 },
+        { label: t('spin.rewards.pro'), type: "pro_access", value: 24, color: "#4D14F3", probability: 0.05 },
     ];
 
     const [rewards, setRewards] = useState(defaultRewards);
@@ -132,8 +134,8 @@ export default function SpinWheel({ user, onComplete }: SpinWheelProps) {
 
                 {!reward ? (
                     <>
-                        <h2 className="text-3xl font-bold mb-2">Hush kelibsiz!</h2>
-                        <p className="text-white/60 mb-8 max-w-sm">Tizimga ilk bor kirganingiz uchun omad g'ildiragini aylantiring va bonuslarga ega bo'ling.</p>
+                        <h2 className="text-3xl font-bold mb-2">{t('spin.welcome')}</h2>
+                        <p className="text-white/60 mb-8 max-w-sm">{t('spin.body')}</p>
 
                         <div className="relative w-72 h-72 mb-10">
                             {/* Inner arrow indicator */}
@@ -183,7 +185,7 @@ export default function SpinWheel({ user, onComplete }: SpinWheelProps) {
                             disabled={isSpinning}
                             className="px-10 py-4 bg-gradient-to-r from-[#1497F3] to-[#7B4DFF] text-white rounded-xl font-bold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_40px_rgba(20,151,243,0.3)]"
                         >
-                            {isSpinning ? 'Aylanmoqda...' : 'Omadni Sinash'}
+                            {isSpinning ? t('spin.spinning') : t('spin.spin')}
                         </button>
                     </>
                 ) : (
@@ -196,8 +198,8 @@ export default function SpinWheel({ user, onComplete }: SpinWheelProps) {
                             <Gift size={48} />
                         </div>
                         <div>
-                            <h2 className="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">Tabriklaymiz!</h2>
-                            <p className="text-white/60 text-lg">Siz quyidagi bonusni yutib oldingiz:</p>
+                            <h2 className="text-4xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-white to-white/60">{t('spin.congrats')}</h2>
+                            <p className="text-white/60 text-lg">{t('spin.won')}</p>
                         </div>
                         
                         <div className="text-3xl font-bold p-6 bg-white/5 border border-white/10 rounded-2xl shadow-xl backdrop-blur-sm w-full">
@@ -206,7 +208,7 @@ export default function SpinWheel({ user, onComplete }: SpinWheelProps) {
                         
                         {reward.type === 'coupon' && (
                             <div className="border border-dashed border-[#1497F3] p-3 text-center rounded-xl w-full">
-                                <p className="text-white/50 text-xs mb-1">Chegirma Promokodi:</p>
+                                <p className="text-white/50 text-xs mb-1">{t('spin.coupon')}</p>
                                 <p className="font-mono text-xl font-bold text-[#1497F3]">{reward.value}</p>
                             </div>
                         )}
@@ -215,7 +217,7 @@ export default function SpinWheel({ user, onComplete }: SpinWheelProps) {
                             onClick={onComplete}
                             className="mt-8 px-8 py-4 bg-white text-black hover:bg-gray-100 rounded-xl font-bold flex items-center gap-2 transition-colors w-full justify-center"
                         >
-                            Platformaga o'tish <ArrowRight size={20} />
+                            {t('spin.continue')} <ArrowRight size={20} />
                         </button>
                     </motion.div>
                 )}
