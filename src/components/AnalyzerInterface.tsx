@@ -248,14 +248,24 @@ export default function AnalyzerInterface({ initialQuery = '', initialMode = 'wi
       });
 
       abortControllerRef.current = null;
+      const responseText = await response.text();
+      let responseData: any = null;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || t('analyzer.failedAnalyze'));
+      try {
+        responseData = responseText ? JSON.parse(responseText) : null;
+      } catch {
+        responseData = null;
       }
 
-      const data = await response.json();
-      setResult(data);
+      if (!response.ok) {
+        throw new Error(responseData?.error || responseText || t('analyzer.failedAnalyze'));
+      }
+
+      if (!responseData) {
+        throw new Error(t('analyzer.failedAnalyze'));
+      }
+
+      setResult(responseData);
       
       // Consume credits
       if (currentUser?.uid && userData) {
